@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+    // Aplicar modo oscuro antes del primer render para evitar flash
+    (function(){
+        const d = localStorage.getItem('zonachat_dark');
+        const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (d === '1' || (d === null && sys)) document.documentElement.classList.add('dark');
+    })();
+</script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZonaChat.net — Perfil</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .perfil-grid { display:grid; grid-template-columns:220px 1fr; gap:8px; align-items:start; }
+        .stat-fila   { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dotted #ccc; font-size:11px; }
+        .stat-fila:last-child { border-bottom:none; }
+        .stat-valor  { font-weight:bold; color:var(--terra-blue-dark); }
+        .tab-bar     { display:flex; border-bottom:2px solid var(--win-bd); margin-bottom:0; }
+        .tab-btn     { padding:4px 14px; font-size:11px; font-weight:bold; cursor:pointer; background:var(--win-gray); border:1px solid var(--win-bd); border-bottom:none; margin-right:2px; color:var(--text-dark); }
+        .tab-btn.activa { background:var(--win-white); border-bottom:2px solid var(--win-white); margin-bottom:-2px; color:var(--terra-blue-dark); }
+        .tab-panel   { display:none; background:var(--win-white); border:1px solid var(--win-bd); border-top:none; padding:10px; }
+        .tab-panel.activa { display:block; }
+        #avatar-preview { font-size:36px; width:80px; height:80px; line-height:80px; text-align:center; border:2px solid var(--win-bd); background:var(--win-gray); cursor:pointer; user-select:none; display:block; }
+        .emoji-picker { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; max-width:220px; }
+        .emoji-picker span { font-size:22px; cursor:pointer; padding:3px; border:1px solid transparent; border-radius:2px; }
+        .emoji-picker span:hover { border-color:var(--terra-blue-mid); background:#eef; }
+        .actividad-item { font-size:11px; padding:4px 0; border-bottom:1px dotted #ddd; display:flex; gap:8px; align-items:baseline; }
+        .actividad-item:last-child { border-bottom:none; }
+    </style>
+</head>
+<body>
+<div id="zonachat-toast-container"></div>
+<nav class="glass-nav"><div class="container nav-wrapper">
+    <a href="index.html" class="logo">Zona<span>Chat.net</span></a>
+    <div class="nav-links">
+        <a href="salas.html">🏠 Salas</a>
+        <a href="perfil.html" class="activo">👤 Mi Perfil</a>
+    </div>
+    <div id="auth-controls">
+        <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
+        <button id="nav-perfil-btn" onclick="location.href='perfil.html'"></button>
+        <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
+        <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
+    </div>
+</div>        <button class="dark-toggle" onclick="toggleModoOscuro()" title="Cambiar modo">
+            <span class="toggle-icon">🌙</span>
+            <span class="toggle-label">Modo oscuro</span>
+        </button>
+</nav>
+
+<main class="container">
+    <div class="perfil-grid">
+
+        <!-- Columna izquierda: tarjeta de usuario -->
+        <div>
+            <div class="glass-card">
+                <div class="win-titlebar"><span id="titulo-perfil">👤 Mi Perfil</span></div>
+                <div class="card-body" style="text-align:center;">
+                    <!-- Avatar -->
+                    <div id="avatar-preview" onclick="toggleEmojiPicker()" title="Cambiar avatar">👤</div>
+                    <div id="emoji-picker" class="emoji-picker hidden" style="justify-content:center">
+                        <span onclick="seleccionarEmoji('😀')">😀</span><span onclick="seleccionarEmoji('🤖')">🤖</span>
+                        <span onclick="seleccionarEmoji('🦊')">🦊</span><span onclick="seleccionarEmoji('🐱')">🐱</span>
+                        <span onclick="seleccionarEmoji('🦁')">🦁</span><span onclick="seleccionarEmoji('🎭')">🎭</span>
+                        <span onclick="seleccionarEmoji('🧑‍💻')">🧑‍💻</span><span onclick="seleccionarEmoji('🦸')">🦸</span>
+                        <span onclick="seleccionarEmoji('👾')">👾</span><span onclick="seleccionarEmoji('🌙')">🌙</span>
+                        <span onclick="seleccionarEmoji('⚡')">⚡</span><span onclick="seleccionarEmoji('🔥')">🔥</span>
+                    </div>
+                    <div style="margin-top:8px">
+                        <strong id="nombre-display" style="font-size:13px;color:var(--terra-blue-dark)"></strong>
+                        <div id="rol-badge" style="margin-top:3px"></div>
+                        <div id="estado-display" style="margin-top:4px;font-size:10px;color:var(--text-system)"></div>
+                    </div>
+                </div>
+                <hr class="separator" style="margin:0">
+                <!-- Estadísticas -->
+                <div class="card-body">
+                    <div class="stat-fila"><span>Mensajes</span><span id="stat-mensajes" class="stat-valor">–</span></div>
+                    <div class="stat-fila"><span>Miembro desde</span><span id="stat-desde" class="stat-valor">–</span></div>
+                    <div class="stat-fila"><span>Rol</span><span id="stat-rol" class="stat-valor">–</span></div>
+                    <div class="stat-fila"><span>Estado</span><span id="stat-estado" class="stat-valor">–</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: tabs -->
+        <div>
+            <div class="glass-card">
+                <div class="win-titlebar"><span>⚙️ Configuración del Perfil</span></div>
+                <div style="padding:8px 8px 0;">
+                    <div class="tab-bar">
+                        <button class="tab-btn activa" onclick="cambiarTab('info',this)">Información</button>
+                        <button class="tab-btn" onclick="cambiarTab('seguridad',this)">Seguridad</button>
+                        <button class="tab-btn" onclick="cambiarTab('ajustes',this)">Ajustes</button>
+                        <button class="tab-btn" onclick="cambiarTab('actividad',this)">Actividad</button>
+                    </div>
+                </div>
+
+                <!-- Tab: Información -->
+                <div id="tab-info" class="tab-panel activa" style="margin:0 8px 8px">
+                    <div class="input-group"><label>Nombre de usuario</label><input type="text" id="f-nombre" maxlength="30" placeholder="Tu nick..."></div>
+                    <div class="input-group"><label>Email</label><input type="email" id="f-email" placeholder="tu@email.com"><span class="input-hint">El email no es visible para otros usuarios.</span></div>
+                    <div class="input-group"><label>Biografía</label><textarea id="f-bio" maxlength="300" rows="4" placeholder="Cuéntanos algo sobre ti..."></textarea><span class="input-hint" id="bio-count">0 / 300</span></div>
+                    <button onclick="guardarInfo()">💾 Guardar cambios</button>
+                </div>
+
+                <!-- Tab: Seguridad -->
+                <div id="tab-seguridad" class="tab-panel" style="margin:0 8px 8px">
+                    <p class="text-small mb-8" style="padding:4px 0">Para cambiar la contraseña introduce la actual y la nueva dos veces.</p>
+                    <div class="input-group"><label>Contraseña actual</label><input type="password" id="pass-actual" autocomplete="current-password" placeholder="••••••••"></div>
+                    <div class="input-group">
+                        <label>Nueva contraseña</label>
+                        <input type="password" id="pass-nueva" autocomplete="new-password" placeholder="Mínimo 8 caracteres" oninput="actualizarBarra()">
+                        <div class="strength-meter-container"><div id="strength-bar" class="strength-bar"></div></div>
+                        <span id="pass-hint" class="input-hint">Nivel: Vacío</span>
+                    </div>
+                    <div class="input-group"><label>Confirmar nueva contraseña</label><input type="password" id="pass-confirmar" autocomplete="new-password" placeholder="Repite la contraseña" oninput="verificarCoincidencia()"><span id="match-hint" class="input-hint"></span></div>
+                    <button onclick="cambiarPassword()">🔐 Cambiar contraseña</button>
+                    <hr class="separator">
+                    <p class="text-small mb-8" style="color:var(--terra-red);font-weight:bold">⚠️ Zona de peligro</p>
+                    <button class="btn-danger" onclick="confirmarBorrarCuenta()">🗑 Eliminar mi cuenta</button>
+                </div>
+
+                <!-- Tab: Ajustes -->
+                <div id="tab-ajustes" class="tab-panel" style="margin:0 8px 8px">
+                    <p class="text-small mb-8">Preferencias de notificaciones y privacidad.</p>
+                    <div class="input-group">
+                        <label><input type="checkbox" id="aj-notif-resp" checked> Notificarme cuando alguien responda a mis hilos</label>
+                    </div>
+                    <div class="input-group">
+                        <label><input type="checkbox" id="aj-notif-cita"> Notificarme cuando me citen</label>
+                    </div>
+                    <div class="input-group">
+                        <label><input type="checkbox" id="aj-perfil-publico" checked> Perfil visible para otros usuarios</label>
+                    </div>
+                    <div class="input-group">
+                        <label><input type="checkbox" id="aj-mostrar-email"> Mostrar email en el perfil público</label>
+                    </div>
+                    <div class="input-group">
+                        <label>Idioma de la interfaz</label>
+                        <select id="aj-idioma"><option value="es">Español</option><option value="en">English</option></select>
+                    </div>
+                    <button onclick="guardarAjustes()">💾 Guardar ajustes</button>
+                </div>
+
+                <!-- Tab: Actividad -->
+                <div id="tab-actividad" class="tab-panel" style="margin:0 8px 8px">
+                    <p class="text-small mb-8">Últimas participaciones del usuario.</p>
+                    <div id="lista-actividad"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal confirmar borrar cuenta -->
+<div id="modal-borrar" class="modal-overlay hidden">
+    <div class="glass-card modal-content">
+        <div class="win-titlebar"><span>⚠️ Confirmar eliminación</span></div>
+        <div class="card-body">
+            <p style="margin-bottom:10px">Esta acción es <strong>irreversible</strong>. Tu cuenta y todos tus mensajes serán eliminados permanentemente.</p>
+            <p class="text-small mb-8">Escribe tu nombre de usuario para confirmar:</p>
+            <div class="input-group"><input type="text" id="confirmar-nombre" placeholder="Tu nombre de usuario"></div>
+            <div class="modal-buttons">
+                <button class="btn-danger" onclick="ejecutarBorrarCuenta()">Eliminar definitivamente</button>
+                <button onclick="cerrarModalBorrar()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+'use strict';
+let usuario = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+    iniciarSesionGuardada(u => {
+        usuario = u;
+        renderizarNavbar(u);
+        cargarPerfil(u);
+        cargarActividad(u);
+    }, () => {
+        renderizarNavbar(null);
+        mostrarAviso('Debes iniciar sesión para ver tu perfil.', 'error');
+        setTimeout(() => location.href='index.html', 2000);
+    });
+
+    const bio = document.getElementById('f-bio');
+    if (bio) bio.addEventListener('input', () => {
+        document.getElementById('bio-count').textContent = `${bio.value.length} / 300`;
+    });
+});
+
+function cargarPerfil(u) {
+    document.getElementById('avatar-preview').textContent   = u.avatar || u.nombre[0].toUpperCase();
+    document.getElementById('nombre-display').textContent   = u.nombre;
+    document.getElementById('estado-display').textContent   = `● ${u.estado||'online'}`;
+    document.getElementById('stat-mensajes').textContent    = (u.mensajes_total||0).toLocaleString('es-ES');
+    document.getElementById('stat-desde').textContent       = formatearFecha(u.fecha_registro);
+    document.getElementById('stat-rol').textContent         = u.rol.charAt(0).toUpperCase()+u.rol.slice(1);
+    document.getElementById('stat-estado').textContent      = 'Online';
+    document.getElementById('titulo-perfil').textContent    = `👤 ${u.nombre}`;
+
+    const rolBadge = document.getElementById('rol-badge');
+    if (u.rol==='moderador') { rolBadge.innerHTML=''; const b=document.createElement('span'); b.className='badge-mod'; b.textContent='MODERADOR'; rolBadge.appendChild(b); }
+    else if (u.rol==='admin') { rolBadge.innerHTML=''; const b=document.createElement('span'); b.className='badge-admin'; b.textContent='ADMIN'; rolBadge.appendChild(b); }
+
+    // Rellenar formulario
+    document.getElementById('f-nombre').value = u.nombre;
+    document.getElementById('f-email').value  = u.email||'';
+    document.getElementById('f-bio').value    = u.bio||'';
+    const bio = document.getElementById('f-bio');
+    document.getElementById('bio-count').textContent = `${bio.value.length} / 300`;
+}
+
+function cargarActividad(u) {
+    const cont = document.getElementById('lista-actividad');
+    // Mostrar últimos hilos donde participó
+    const participaciones = MOCK.hilos.filter(h =>
+        h.autor === u.nombre || h.respuestas.some(r => r.autor === u.nombre)
+    );
+    if (!participaciones.length) { cont.innerHTML='<p class="text-small">Sin actividad registrada.</p>'; return; }
+    participaciones.slice(0,8).forEach(h => {
+        const div = document.createElement('div'); div.className='actividad-item';
+        const sala = MOCK.salas.find(s=>s.id===h.salaId);
+        const icon = document.createElement('span'); icon.textContent='💬'; icon.style.flexShrink='0';
+        const texto = document.createElement('span');
+        const a = document.createElement('a'); a.textContent=truncar(h.titulo,60); a.href=`hilo.html?sala=${h.salaId}&hilo=${h.id}`;
+        const meta = document.createElement('span'); meta.className='text-small'; meta.textContent=` — ${sala?sala.nombre:'?'} · ${formatearFecha(h.fecha)}`;
+        texto.append(a,meta);
+        div.append(icon,texto); cont.appendChild(div);
+    });
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function cambiarTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activa'));
+    document.querySelectorAll('.tab-btn').forEach(b   => b.classList.remove('activa'));
+    document.getElementById(`tab-${id}`).classList.add('activa');
+    btn.classList.add('activa');
+}
+
+// ── Avatar emoji ───────────────────────────────────────────────────────────────
+function toggleEmojiPicker() { document.getElementById('emoji-picker').classList.toggle('hidden'); }
+function seleccionarEmoji(emoji) {
+    document.getElementById('avatar-preview').textContent = emoji;
+    document.getElementById('emoji-picker').classList.add('hidden');
+    if (usuario) usuario.avatar = emoji;
+    mostrarAviso('Avatar actualizado.','success');
+}
+
+// ── Guardar info ────────────────────────────────────────────────────────────────
+function guardarInfo() {
+    const nombre = document.getElementById('f-nombre').value.trim();
+    const email  = document.getElementById('f-email').value.trim();
+    const bio    = document.getElementById('f-bio').value.trim();
+
+    if (!nombre) { mostrarAviso('El nombre no puede estar vacío.','error'); return; }
+    if (nombre.length > 30) { mostrarAviso('Nombre demasiado largo (máx 30 caracteres).','error'); return; }
+    if (email && !validarEmail(email)) { mostrarAviso('Formato de email no válido.','error'); return; }
+
+    if (usuario) { usuario.nombre=nombre; usuario.email=email; usuario.bio=bio; }
+    document.getElementById('nombre-display').textContent = nombre;
+    mostrarAviso('Perfil actualizado correctamente.','success');
+    // TODO: fetch PATCH /api/perfil con { nombre, email, bio }
+}
+
+// ── Cambiar contraseña ─────────────────────────────────────────────────────────
+function actualizarBarra() {
+    const pass = document.getElementById('pass-nueva').value;
+    const {score} = calcularFortaleza(pass);
+    const bar  = document.getElementById('strength-bar');
+    const hint = document.getElementById('pass-hint');
+    const niveles = [
+        {label:'Vacío',        clase:'',      width:'0%'},
+        {label:'Muy Débil 🔴', clase:'weak',  width:'25%'},
+        {label:'Aceptable 🟡', clase:'medium',width:'50%'},
+        {label:'Fuerte 🟢',    clase:'strong',width:'75%'},
+        {label:'Futurista 🌐', clase:'ultra', width:'100%'},
+    ];
+    const n = pass.length===0? niveles[0]: niveles[score]||niveles[score-1];
+    bar.className=`strength-bar ${n.clase}`; bar.style.width=n.width;
+    hint.textContent=`Nivel: ${n.label}`;
+    verificarCoincidencia();
+}
+function verificarCoincidencia() {
+    const p1=document.getElementById('pass-nueva').value, p2=document.getElementById('pass-confirmar').value;
+    const hint=document.getElementById('match-hint');
+    if (!p2) { hint.textContent=''; return; }
+    if (p1===p2) { hint.textContent='✅ Coinciden'; hint.className='input-hint hint-success'; }
+    else          { hint.textContent='❌ No coinciden'; hint.className='input-hint hint-error'; }
+}
+
+function cambiarPassword() {
+    const actual    = document.getElementById('pass-actual').value;
+    const nueva     = document.getElementById('pass-nueva').value;
+    const confirmar = document.getElementById('pass-confirmar').value;
+
+    if (!actual) { mostrarAviso('Introduce la contraseña actual.','error'); return; }
+    if (nueva.length < 8) { mostrarAviso('La nueva contraseña debe tener al menos 8 caracteres.','error'); return; }
+    if (nueva !== confirmar) { mostrarAviso('Las contraseñas no coinciden.','error'); return; }
+    if (calcularFortaleza(nueva).score < 2) { mostrarAviso('La contraseña es demasiado débil.','error'); return; }
+
+    // TODO: fetch PATCH /api/perfil/password con { actual, nueva }
+    mostrarAviso('Contraseña actualizada correctamente.','success');
+    ['pass-actual','pass-nueva','pass-confirmar'].forEach(id => document.getElementById(id).value='');
+}
+
+// ── Guardar ajustes ────────────────────────────────────────────────────────────
+function guardarAjustes() {
+    // TODO: fetch PATCH /api/perfil/ajustes
+    mostrarAviso('Ajustes guardados.','success');
+}
+
+// ── Borrar cuenta ──────────────────────────────────────────────────────────────
+function confirmarBorrarCuenta() { document.getElementById('modal-borrar').classList.remove('hidden'); }
+function cerrarModalBorrar()     { document.getElementById('modal-borrar').classList.add('hidden'); }
+function ejecutarBorrarCuenta() {
+    const input = document.getElementById('confirmar-nombre').value.trim();
+    if (!usuario || input !== usuario.nombre) { mostrarAviso('El nombre no coincide.','error'); return; }
+    // TODO: fetch DELETE /api/perfil
+    mostrarAviso('Cuenta eliminada. Redirigiendo...','success');
+    setTimeout(() => cerrarSesion(), 2000);
+}
+</script>
+<script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>
+</body></html>

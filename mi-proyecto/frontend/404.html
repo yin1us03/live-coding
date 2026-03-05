@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+    // Aplicar modo oscuro antes del primer render para evitar flash
+    (function(){
+        const d = localStorage.getItem('zonachat_dark');
+        const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (d === '1' || (d === null && sys)) document.documentElement.classList.add('dark');
+    })();
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZonaChat.net — Página no encontrada</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Layout centrado ── */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .error-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .error-panel {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        /* ── Pantalla de error estilo cuadro de diálogo Windows ── */
+        .dialog-titlebar {
+            background: linear-gradient(90deg, #8b0000 0%, #cc0000 55%, #ff4444 100%);
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #550000;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.6);
+            user-select: none;
+        }
+        .dialog-titlebar .win-controls {
+            display: flex;
+            gap: 2px;
+        }
+        .win-btn {
+            width: 16px; height: 14px;
+            font-size: 9px; line-height: 14px;
+            text-align: center;
+            background: linear-gradient(180deg, #f0ece4 0%, #d4d0c8 100%);
+            border-top:   1px solid #fff;
+            border-left:  1px solid #fff;
+            border-right: 1px solid #404040;
+            border-bottom:1px solid #404040;
+            cursor: pointer;
+            color: #000;
+            font-weight: bold;
+        }
+        .win-btn:hover { background: #ffaaaa; }
+        .win-btn.close { background: linear-gradient(180deg, #ff9999 0%, #cc0000 100%); color: #fff; }
+        .win-btn.close:hover { background: #ff0000; }
+
+        .dialog-body {
+            background: var(--win-gray);
+            padding: 16px 20px;
+            border-top: none;
+        }
+        .dialog-icon-row {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+        .error-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+            animation: iconShake 2s ease-in-out infinite;
+        }
+        @keyframes iconShake {
+            0%,100%  { transform: rotate(0deg); }
+            10%,30%  { transform: rotate(-4deg); }
+            20%,40%  { transform: rotate(4deg); }
+            50%      { transform: rotate(0deg); }
+        }
+        .error-text-block { flex: 1; }
+        .error-code {
+            font-size: 36px;
+            font-weight: bold;
+            color: #8b0000;
+            line-height: 1;
+            text-shadow: 1px 1px 0 #ffaaaa;
+            letter-spacing: -1px;
+        }
+        .error-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #000;
+            margin: 4px 0 6px;
+        }
+        .error-desc {
+            font-size: 11px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* ── Línea separadora estilo Win ── */
+        .dialog-sep {
+            border: none;
+            border-top: 1px solid #808080;
+            border-bottom: 1px solid #fff;
+            margin: 12px 0;
+        }
+
+        /* ── Detalles técnicos (colapsable) ── */
+        .details-toggle {
+            font-size: 11px;
+            color: var(--terra-blue-mid);
+            cursor: pointer;
+            text-decoration: underline;
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: var(--font-ui);
+            font-weight: normal;
+            width: auto;
+            display: inline;
+        }
+        .details-toggle:hover { color: var(--terra-blue-dark); background: none; transform: none; box-shadow: none; }
+        .details-box {
+            display: none;
+            margin-top: 8px;
+            background: var(--win-white);
+            border-top: 1px solid var(--win-bd);
+            border-left: 1px solid var(--win-bd);
+            border-right: 1px solid var(--win-bl);
+            border-bottom: 1px solid var(--win-bl);
+            padding: 6px 8px;
+            font-size: 10px;
+            color: #555;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        .details-box.visible { display: block; }
+
+        /* ── Botones de acción ── */
+        .dialog-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 14px;
+        }
+        .dialog-actions button {
+            min-width: 90px;
+        }
+
+        /* ── Barra de estado inferior ── */
+        .status-bar {
+            background: var(--win-gray);
+            border-top: 2px solid var(--win-bd);
+            padding: 2px 8px;
+            font-size: 10px;
+            color: #555;
+            display: flex;
+            gap: 12px;
+        }
+        .status-bar span { border-right: 1px solid var(--win-bd); padding-right: 12px; }
+        .status-bar span:last-child { border-right: none; }
+
+        /* ── Contador regresivo ── */
+        .countdown {
+            font-size: 10px;
+            color: var(--text-system);
+            text-align: center;
+            margin-top: 8px;
+        }
+        .countdown strong { color: var(--terra-blue-dark); }
+
+        /* ── Sugerencias de rutas ── */
+        .sugerencias {
+            background: var(--win-white);
+            border-top: 1px solid var(--win-bd);
+            border-left: 1px solid var(--win-bd);
+            padding: 6px 10px;
+            margin-top: 8px;
+        }
+        .sugerencias p { font-size: 11px; font-weight: bold; color: var(--text-label); margin-bottom: 4px; }
+        .sugerencias a {
+            display: block;
+            font-size: 11px;
+            color: var(--text-link);
+            padding: 2px 0;
+            text-decoration: none;
+        }
+        .sugerencias a::before { content: '› '; color: var(--terra-blue-mid); font-weight: bold; }
+        .sugerencias a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<nav class="glass-nav">
+    <div class="container nav-wrapper">
+        <a href="index.html" class="logo">Zona<span>Chat.net</span></a>
+        <div class="nav-links">
+            <a href="salas.html">🏠 Salas</a>
+            <a href="perfil.html">👤 Mi Perfil</a>
+        </div>
+        <div id="auth-controls">
+            <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
+            <button id="nav-perfil-btn" onclick="location.href='perfil.html'" style="display:none"></button>
+            <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
+            <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
+        </div>
+    </div>
+        <button class="dark-toggle" onclick="toggleModoOscuro()" title="Cambiar modo">
+            <span class="toggle-icon">🌙</span>
+            <span class="toggle-label">Modo oscuro</span>
+        </button>
+</nav>
+
+<div class="error-wrapper">
+    <div class="error-panel">
+
+        <!-- Cuadro de diálogo de error estilo Windows -->
+        <div class="glass-card" style="padding:0">
+
+            <!-- Barra de título roja -->
+            <div class="dialog-titlebar">
+                <span>⛔ ZonaChat.net — Error del sistema</span>
+                <div class="win-controls">
+                    <div class="win-btn">_</div>
+                    <div class="win-btn">□</div>
+                    <div class="win-btn close" onclick="location.href='index.html'">✕</div>
+                </div>
+            </div>
+
+            <div class="dialog-body">
+                <!-- Icono + código de error -->
+                <div class="dialog-icon-row">
+                    <div class="error-icon">🔍</div>
+                    <div class="error-text-block">
+                        <div class="error-code">404</div>
+                        <div class="error-title">Página no encontrada</div>
+                        <div class="error-desc">
+                            La ruta que intentas acceder no existe en el sistema
+                            o ha sido eliminada. Comprueba que la dirección
+                            es correcta e inténtalo de nuevo.
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="dialog-sep">
+
+                <!-- Sugerencias de navegación -->
+                <div class="sugerencias">
+                    <p>Quizás buscabas:</p>
+                    <a href="index.html">Inicio — Página principal</a>
+                    <a href="salas.html">Salas — Explorar grupos</a>
+                    <a href="hilo.html?sala=1">Hilos — Ver conversaciones</a>
+                    <a href="perfil.html">Mi Perfil — Configuración de cuenta</a>
+                </div>
+
+                <hr class="dialog-sep">
+
+                <!-- Detalles técnicos colapsables -->
+                <button class="details-toggle" onclick="toggleDetalles()">▶ Mostrar detalles técnicos</button>
+                <div class="details-box" id="detalles-tecnicos">
+                    HTTP 404 — Not Found<br>
+                    Ruta:    <span id="ruta-actual"></span><br>
+                    Origen:  <span id="origen-actual"></span><br>
+                    Hora:    <span id="hora-actual"></span><br>
+                    Agente:  <span id="agente-actual"></span>
+                </div>
+
+                <!-- Botones -->
+                <div class="dialog-actions">
+                    <button onclick="history.back()">◄ Volver</button>
+                    <button class="btn-primary" style="width:auto;padding:4px 20px" onclick="location.href='index.html'">Inicio</button>
+                </div>
+
+                <!-- Contador regresivo -->
+                <div class="countdown">
+                    Redirigiendo al inicio en <strong id="cuenta">10</strong> segundos...
+                </div>
+            </div>
+
+            <!-- Barra de estado -->
+            <div class="status-bar">
+                <span>Error 404</span>
+                <span id="status-ruta"></span>
+                <span id="status-hora"></span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+'use strict';
+
+window.addEventListener('DOMContentLoaded', () => {
+    iniciarSesionGuardada(u => renderizarNavbar(u), () => renderizarNavbar(null));
+
+    // Rellenar detalles técnicos con textContent (nunca innerHTML con datos externos)
+    const ahora = new Date();
+    document.getElementById('ruta-actual').textContent   = location.pathname + location.search;
+    document.getElementById('origen-actual').textContent = location.origin;
+    document.getElementById('hora-actual').textContent   = ahora.toLocaleString('es-ES');
+    document.getElementById('agente-actual').textContent = navigator.userAgent.slice(0, 60) + '…';
+
+    document.getElementById('status-ruta').textContent = location.pathname;
+    document.getElementById('status-hora').textContent = ahora.toLocaleTimeString('es-ES');
+
+    // Contador regresivo → redirige al inicio
+    let cuenta = 10;
+    const el = document.getElementById('cuenta');
+    const timer = setInterval(() => {
+        cuenta--;
+        el.textContent = cuenta;
+        if (cuenta <= 0) {
+            clearInterval(timer);
+            location.href = 'index.html';
+        }
+    }, 1000);
+
+    // Si el usuario interactúa, cancelar la redirección automática
+    document.addEventListener('click', () => clearInterval(timer), { once: true });
+    document.addEventListener('keydown', () => clearInterval(timer), { once: true });
+});
+
+function toggleDetalles() {
+    const box = document.getElementById('detalles-tecnicos');
+    const btn = document.querySelector('.details-toggle');
+    const visible = box.classList.toggle('visible');
+    btn.textContent = visible ? '▼ Ocultar detalles técnicos' : '▶ Mostrar detalles técnicos';
+}
+</script>
+<script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>
+</body>
+</html>

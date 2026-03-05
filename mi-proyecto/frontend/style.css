@@ -1,93 +1,1023 @@
-/* RESET RETRO */
+/* ═══════════════════════════════════════════════════════════════════════════
+   AeroForum — style.css
+   Estética inspirada en el Chat de Terra (2000-2005)
+   Frutiger Aero meets Windows XP / IE6 era:
+   paneles con bisel, gradientes azul corporativo, gris perla, tipografía
+   pequeña y densa, bordes 3D, listas de usuarios, barra de título clásica.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variables de color Terra ─────────────────────────────────────────────── */
+:root {
+    --terra-blue-dark:    #003399;   /* Azul corporativo Terra oscuro */
+    --terra-blue-mid:     #0055cc;   /* Azul medio – gradientes */
+    --terra-blue-light:   #4488ff;   /* Azul claro – hover, acentos */
+    --terra-blue-header:  #1a4a9e;   /* Barra de título */
+    --terra-green:        #009900;   /* Verde online */
+    --terra-red:          #cc0000;   /* Rojo error / offline */
+    --terra-yellow:       #ffcc00;   /* Amarillo – iconos especiales */
+
+    --win-gray:           #d4d0c8;   /* Gris clásico Windows */
+    --win-gray-light:     #ece9d8;   /* Fondo panel claro XP */
+    --win-gray-dark:      #808080;   /* Sombra borde 3D */
+    --win-white:          #ffffff;
+    --win-border-light:   #ffffff;   /* Borde relieve – lado iluminado */
+    --win-border-dark:    #808080;   /* Borde relieve – lado sombra */
+    --win-border-darker:  #404040;   /* Borde relieve exterior */
+
+    --text-dark:          #000000;
+    --text-label:         #003399;
+    --text-chat:          #111111;
+    --text-system:        #666666;
+    --text-white:         #ffffff;
+
+    --font-ui:   'Tahoma', 'Arial', sans-serif;   /* Fuente icónica de Terra/XP */
+    --font-size: 11px;
+}
+
+/* ── Reset ────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-    background-color: #008080; /* El mítico verde azulado de Windows 95 */
-    background-image: url('https://www.transparenttextures.com/patterns/cubes.png'); /* Textura sutil */
-    font-family: "Times New Roman", Times, serif;
-    color: #000;
-    margin: 0;
-    padding: 20px;
+    font-family: var(--font-ui);
+    font-size:   var(--font-size);
+    background:  var(--win-gray-light);
+    color:       var(--text-dark);
+    min-height:  100vh;
+    display:     flex;
+    flex-direction: column;
+    /* Textura de fondo sutil – el clásico patrón de escritorio */
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.01) 2px,
+        rgba(0,0,0,0.01) 4px
+    );
 }
 
-/* CONTENEDORES TIPO VENTANA */
-.glass-card, .glass-sidebar, .post-card {
-    background: #c0c0c0; /* Gris industrial */
-    border-top: 2px solid #fff;
-    border-left: 2px solid #fff;
-    border-right: 2px solid #808080;
-    border-bottom: 2px solid #808080;
-    padding: 10px;
-    box-shadow: none;
-    backdrop-filter: none; /* Adiós al cristal */
+/* ── Utilidad: borde bisel 3D estilo Windows ─────────────────────────────── */
+.bevel {
+    border-top:    2px solid var(--win-border-light);
+    border-left:   2px solid var(--win-border-light);
+    border-right:  2px solid var(--win-border-dark);
+    border-bottom: 2px solid var(--win-border-dark);
 }
 
-/* TÍTULOS DE VENTANA */
-h2, h3, .logo {
-    background: linear-gradient(90deg, #000080, #1084d0); /* Azul degradado de barra de título */
-    color: white;
-    padding: 4px 10px;
-    font-size: 1.2rem;
-    margin-top: 0;
-    border-bottom: 1px solid #000;
+.bevel-inset {
+    border-top:    2px solid var(--win-border-dark);
+    border-left:   2px solid var(--win-border-dark);
+    border-right:  2px solid var(--win-border-light);
+    border-bottom: 2px solid var(--win-border-light);
 }
 
-.logo span { color: #ffff00; text-decoration: underline; }
+/* ── Contenedor principal ────────────────────────────────────────────────── */
+.container {
+    max-width: 860px;
+    margin:    0 auto;
+    padding:   0 8px;
+}
 
-/* BOTONES 90s */
-button {
-    background: #c0c0c0;
-    border-top: 2px solid #fff;
-    border-left: 2px solid #fff;
-    border-right: 2px solid #000;
-    border-bottom: 2px solid #000;
-    color: black;
+/* ── Navbar / Barra superior estilo Terra ────────────────────────────────── */
+.glass-nav {
+    background: linear-gradient(180deg,
+        #2060c8 0%,
+        var(--terra-blue-dark) 50%,
+        #001f77 100%
+    );
+    border-bottom: 3px solid #001166;
+    box-shadow:    0 2px 6px rgba(0,0,0,0.5);
+    padding:       6px 0;
+    margin-bottom: 10px;
+    /* Línea de brillo superior característica */
+    border-top:    1px solid #6699ff;
+}
+
+.nav-wrapper {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    padding:         4px 8px;
+}
+
+/* Logo Terra */
+.logo {
+    font-size:   18px;
     font-weight: bold;
-    padding: 5px 15px;
+    color:       var(--text-white);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8),
+                 0 0 12px rgba(100,180,255,0.6);
+    letter-spacing: 1px;
     cursor: pointer;
-    font-family: Arial, sans-serif;
+    user-select: none;
+}
+.logo span {
+    color: var(--terra-yellow);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.6),
+                 0 0 8px rgba(255,200,0,0.5);
+}
+
+/* Controles de auth en navbar */
+#auth-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+/* ── Botones estilo Windows XP / Terra ────────────────────────────────────── */
+button {
+    font-family:   var(--font-ui);
+    font-size:     11px;
+    font-weight:   bold;
+    padding:       4px 14px;
+    cursor:        pointer;
+    border:        none;
+    border-radius: 3px;
+    color:         var(--text-dark);
+    background:    linear-gradient(180deg,
+        #f0f0e8 0%,
+        var(--win-gray) 45%,
+        #b8b4ac 100%
+    );
+    border-top:    1px solid var(--win-border-light);
+    border-left:   1px solid var(--win-border-light);
+    border-right:  1px solid var(--win-border-darker);
+    border-bottom: 1px solid var(--win-border-darker);
+    box-shadow:    inset 0 1px 0 rgba(255,255,255,0.7);
+    transition:    none;
+    min-width: 60px;
+}
+
+button:hover {
+    background: linear-gradient(180deg,
+        #ddeeff 0%,
+        #aaccff 45%,
+        #6699dd 100%
+    );
+    border-color: var(--terra-blue-mid);
+    color: var(--text-dark);
+    transform: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
 }
 
 button:active {
-    border-top: 2px solid #000;
-    border-left: 2px solid #000;
-    border-right: 2px solid #fff;
-    border-bottom: 2px solid #fff;
-    padding: 6px 14px 4px 16px;
+    background: linear-gradient(180deg,
+        #8ab0e8 0%,
+        #6699cc 100%
+    );
+    border-top:    1px solid var(--win-border-darker);
+    border-left:   1px solid var(--win-border-darker);
+    border-right:  1px solid var(--win-border-light);
+    border-bottom: 1px solid var(--win-border-light);
+    box-shadow: none;
 }
 
-/* INPUTS ESTILO INSET */
-input, textarea {
-    background: white;
-    border-top: 2px solid #808080;
-    border-left: 2px solid #808080;
-    border-right: 2px solid #fff;
-    border-bottom: 2px solid #fff;
-    padding: 5px;
+/* Botón primario – azul Terra */
+.btn-primary {
+    background: linear-gradient(180deg,
+        #4488ee 0%,
+        var(--terra-blue-mid) 50%,
+        #002288 100%
+    );
+    color:     var(--text-white);
+    border-top:   1px solid #88aaff;
+    border-left:  1px solid #88aaff;
+    border-right: 1px solid #001166;
+    border-bottom:1px solid #001166;
+    text-shadow:  0 1px 1px rgba(0,0,0,0.6);
+    width: 100%;
+    padding: 6px;
+}
+.btn-primary:hover {
+    background: linear-gradient(180deg,
+        #66aaff 0%,
+        #2266dd 50%,
+        #0033aa 100%
+    );
+    color: var(--text-white);
 }
 
-/* MEDIDOR DE FUERZA RETRO */
+/* Botón peligro */
+.btn-danger {
+    background: linear-gradient(180deg,
+        #ff7766 0%,
+        #cc2200 50%,
+        #880000 100%
+    );
+    color: var(--text-white);
+    border-color: #ff4422;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.6);
+}
+.btn-danger:hover {
+    background: linear-gradient(180deg, #ff9988 0%, #dd3311 100%);
+    color: var(--text-white);
+}
+
+/* Botón pequeño sidebar */
+.btn-small {
+    font-size: 10px;
+    padding:   3px 8px;
+    margin-top: 6px;
+    width: 100%;
+}
+
+/* Botón éxito */
+.btn-success {
+    background: linear-gradient(180deg, #44bb44 0%, #007700 100%);
+    color: var(--text-white);
+    border-color: #66dd66;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+    font-size: 10px;
+    padding: 3px 10px;
+}
+
+/* ── Panel / Tarjeta estilo ventana Windows ───────────────────────────────── */
+.glass-card {
+    background:    var(--win-gray);
+    border-radius: 0;
+    border:        none;
+    box-shadow:    none;
+    padding:       0;
+    margin-bottom: 8px;
+    /* Borde bisel exterior completo */
+    border-top:    2px solid var(--win-border-light);
+    border-left:   2px solid var(--win-border-light);
+    border-right:  2px solid var(--win-border-darker);
+    border-bottom: 2px solid var(--win-border-darker);
+    position:      relative;
+    overflow:      hidden;
+}
+
+/* Barra de título azul dentro de cada panel */
+.glass-card > h2:first-child,
+.glass-card > header:first-child {
+    background: linear-gradient(90deg,
+        var(--terra-blue-header) 0%,
+        #2a6acc 60%,
+        #6699cc 100%
+    );
+    color:         var(--text-white);
+    font-size:     12px;
+    font-weight:   bold;
+    padding:       4px 8px;
+    text-shadow:   1px 1px 1px rgba(0,0,0,0.5);
+    border-bottom: 1px solid #001166;
+    letter-spacing: 0.3px;
+    margin-bottom: 0;
+}
+
+/* Contenido interior con padding */
+.glass-card > *:not(h2):not(header),
+.glass-card > form {
+    padding: 10px 12px;
+}
+
+/* Quitar el ::before del glassmorphism original */
+.glass-card::before { display: none; }
+
+/* ── Badge público ────────────────────────────────────────────────────────── */
+.status-badge {
+    background: var(--terra-green);
+    color:      var(--text-white);
+    font-size:  9px;
+    font-weight: bold;
+    padding:    1px 6px;
+    border-radius: 2px;
+    border: 1px solid #005500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.section-header {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    background: linear-gradient(90deg,
+        var(--terra-blue-header) 0%,
+        #2a6acc 60%,
+        #6699cc 100%
+    );
+    padding:       4px 8px;
+    border-bottom: 1px solid #001166;
+}
+
+.section-header h2 {
+    color:       var(--text-white);
+    font-size:   12px;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    background:  none;
+    padding:     0;
+    border:      none;
+}
+
+/* ── Inputs estilo Terra ──────────────────────────────────────────────────── */
+.input-group {
+    margin-bottom: 8px;
+}
+
+label {
+    display:     block;
+    font-size:   11px;
+    font-weight: bold;
+    color:       var(--text-label);
+    margin-bottom: 3px;
+}
+
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+    width:         100%;
+    padding:       4px 6px;
+    font-family:   var(--font-ui);
+    font-size:     11px;
+    color:         var(--text-dark);
+    background:    var(--win-white);
+    border-radius: 0;
+    border-top:    2px solid var(--win-border-dark);
+    border-left:   2px solid var(--win-border-dark);
+    border-right:  2px solid var(--win-border-light);
+    border-bottom: 2px solid var(--win-border-light);
+    outline:       none;
+    transition:    none;
+}
+
+input:focus {
+    border-color:  var(--terra-blue-mid);
+    box-shadow:    inset 0 0 0 1px rgba(0, 85, 204, 0.3);
+}
+
+input.valid {
+    border-color: var(--terra-green) !important;
+    box-shadow:   inset 0 0 0 1px rgba(0,153,0,0.3) !important;
+}
+
+input.invalid {
+    border-color: var(--terra-red) !important;
+    box-shadow:   inset 0 0 0 1px rgba(204,0,0,0.3) !important;
+}
+
+/* ── Hints de validación ──────────────────────────────────────────────────── */
+.input-hint {
+    font-size:   10px;
+    display:     block;
+    margin-top:  2px;
+    color:       var(--text-system);
+}
+.hint-success { color: #005500; font-weight: bold; }
+.hint-error   { color: var(--terra-red); font-weight: bold; }
+
+/* ── Barra de fortaleza de contraseña ─────────────────────────────────────── */
 .strength-meter-container {
-    height: 20px;
-    border: 2px solid #808080;
-    background: #eee;
+    width:         100%;
+    height:        8px;
+    background:    var(--win-white);
+    margin-top:    4px;
+    border-top:    1px solid var(--win-border-dark);
+    border-left:   1px solid var(--win-border-dark);
+    border-right:  1px solid var(--win-border-light);
+    border-bottom: 1px solid var(--win-border-light);
+    overflow:      hidden;
 }
 
 .strength-bar {
-    height: 100%;
-    border-right: 1px solid #000;
+    height:     100%;
+    width:      0%;
+    transition: width 0.3s ease, background 0.3s ease;
 }
 
-/* EFECTOS DE TEXTO */
-.status-badge {
-    color: #00ff00;
-    background: black;
-    padding: 2px 5px;
-    font-family: 'Courier New', Courier, monospace;
+.weak   { background: var(--terra-red); }
+.medium { background: #ff8800; }
+.strong { background: var(--terra-green); }
+.ultra  { background: linear-gradient(90deg, var(--terra-blue-mid), var(--terra-green)); }
+
+/* ── Footer de formulario ─────────────────────────────────────────────────── */
+.form-footer {
+    font-size:  10px;
+    color:      var(--text-system);
+    text-align: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #b0acac;
+}
+.form-footer a {
+    color:           var(--terra-blue-mid);
+    text-decoration: underline;
+    cursor:          pointer;
+}
+.form-footer a:hover { color: var(--terra-blue-dark); }
+
+/* ── Mensajes / Posts ─────────────────────────────────────────────────────── */
+#contenedor-mensajes-publicos {
+    padding: 6px 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--win-white);
+    border-top:    1px solid var(--win-border-dark);
+    border-left:   1px solid var(--win-border-dark);
+    border-right:  1px solid var(--win-border-light);
+    border-bottom: 1px solid var(--win-border-light);
+    margin: 8px 10px;
 }
 
-/* MARQUESINA (Opcional pero muy 90s) */
-.nav-wrapper::after {
-    content: "BIENVENIDO A MI FORO - OPTIMIZADO PARA NETSCAPE NAVIGATOR";
-    font-size: 0.8rem;
+.post-card {
+    background:    var(--win-white);
+    border:        none;
+    border-bottom: 1px dotted #cccccc;
+    border-radius: 0;
+    padding:       4px 2px;
+    margin-top:    0;
+}
+.post-card:last-child { border-bottom: none; }
+
+.post-header {
+    display:     flex;
+    align-items: center;
+    gap:         6px;
+    margin-bottom: 2px;
+}
+.post-header strong {
+    color:       var(--terra-blue-dark);
+    font-size:   11px;
+}
+.post-header span {
+    color:     var(--text-system);
+    font-size: 9px;
+}
+.post-card p {
+    font-size: 11px;
+    color:     var(--text-chat);
+    padding:   0 2px;
+}
+
+/* ── Tarjeta de invitación ────────────────────────────────────────────────── */
+.invite-card {
+    background: #fffff0;
+    border:     1px solid #cccc00 !important;
+    padding:    6px !important;
+    margin:     4px 0;
+    animation:  none; /* Sin pulseGlow – Terra era estático */
+}
+.invite-card h3 {
+    font-size:    11px;
+    color:        var(--terra-blue-dark);
+    margin-bottom: 4px;
+}
+
+/* ── Portal – Layout de dos columnas ──────────────────────────────────────── */
+.portal-grid {
+    display:               grid;
+    grid-template-columns: 180px 1fr;
+    gap:                   6px;
+    height:                calc(100vh - 80px);
+    max-height:            520px;
+    padding-bottom:        6px;
+}
+
+/* ── Sidebar de grupos estilo lista de usuarios Terra ─────────────────────── */
+.glass-sidebar {
+    background:    var(--win-gray);
+    border-radius: 0;
+    border-top:    2px solid var(--win-border-light);
+    border-left:   2px solid var(--win-border-light);
+    border-right:  2px solid var(--win-border-darker);
+    border-bottom: 2px solid var(--win-border-darker);
+    padding:       0;
+    display:       flex;
+    flex-direction: column;
+    overflow:      hidden;
+}
+
+.glass-sidebar h3 {
+    background: linear-gradient(90deg,
+        var(--terra-blue-header) 0%,
+        #2a6acc 100%
+    );
+    color:       var(--text-white);
+    font-size:   11px;
+    font-weight: bold;
+    padding:     4px 8px;
+    border-bottom: 1px solid #001166;
+}
+
+#lista-grupos {
+    list-style: none;
+    flex:       1;
+    overflow-y: auto;
+    background: var(--win-white);
+    border-top:    1px solid var(--win-border-dark);
+    border-left:   1px solid var(--win-border-dark);
+    margin:     4px 6px 4px 6px;
+    padding:    2px;
+}
+
+.grupo-item {
+    padding:       3px 6px;
+    font-size:     11px;
+    cursor:        pointer;
+    color:         var(--text-dark);
+    border-bottom: 1px solid #eeeeee;
+    display:       flex;
+    align-items:   center;
+    gap:           4px;
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+}
+.grupo-item:hover {
+    background: #c8d8f8;
+    color:      var(--terra-blue-dark);
+}
+.grupo-item.active {
+    background: var(--terra-blue-mid);
+    color:      var(--text-white);
+    font-weight: bold;
+}
+
+/* ── Panel principal del chat ─────────────────────────────────────────────── */
+.main-feed {
+    display:        flex;
+    flex-direction: column;
+    height:         100%;
+    overflow:       hidden;
+}
+
+.feed-header {
+    background: linear-gradient(90deg,
+        var(--terra-blue-header) 0%,
+        #2a6acc 60%,
+        #6699cc 100%
+    );
+    padding:       4px 8px;
+    border-bottom: 1px solid #001166;
+}
+.feed-header h2 {
+    color:       var(--text-white);
+    font-size:   11px;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    background:  none;
+    padding:     0;
+}
+
+/* Viewport del chat – área de mensajes con scroll */
+.chat-viewport {
+    flex:       1;
+    overflow-y: auto;
+    background: var(--win-white);
+    border-top:    1px solid var(--win-border-dark);
+    border-left:   1px solid var(--win-border-dark);
+    border-right:  1px solid var(--win-border-light);
+    border-bottom: 1px solid var(--win-border-light);
+    margin:     4px 6px;
+    padding:    4px;
+    font-size:  11px;
+}
+
+/* Scrollbar estilo Windows en el chat */
+.chat-viewport::-webkit-scrollbar { width: 16px; }
+.chat-viewport::-webkit-scrollbar-track {
+    background: var(--win-gray);
+    border-left: 1px solid var(--win-border-dark);
+}
+.chat-viewport::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #e0dcd4 0%, var(--win-gray) 50%, #b0aca4 100%);
+    border-top:    1px solid var(--win-border-light);
+    border-left:   1px solid var(--win-border-light);
+    border-right:  1px solid var(--win-border-darker);
+    border-bottom: 1px solid var(--win-border-darker);
+}
+.chat-viewport::-webkit-scrollbar-button {
+    background: var(--win-gray);
+    border-top:    1px solid var(--win-border-light);
+    border-left:   1px solid var(--win-border-light);
+    border-right:  1px solid var(--win-border-darker);
+    border-bottom: 1px solid var(--win-border-darker);
+    height: 16px;
+}
+
+/* ── Área de entrada de mensaje ────────────────────────────────────────────── */
+.input-area {
+    padding:    4px 6px 6px;
+    background: var(--win-gray);
+    border-top: 1px solid var(--win-border-dark);
+}
+
+textarea {
+    width:         100%;
+    height:        50px;
+    font-family:   var(--font-ui);
+    font-size:     11px;
+    color:         var(--text-dark);
+    background:    var(--win-white);
+    border-radius: 0;
+    border-top:    2px solid var(--win-border-dark);
+    border-left:   2px solid var(--win-border-dark);
+    border-right:  2px solid var(--win-border-light);
+    border-bottom: 2px solid var(--win-border-light);
+    padding:       4px 6px;
+    resize:        none;
+    outline:       none;
+    display:       block;
+}
+textarea:focus {
+    border-color: var(--terra-blue-mid);
+}
+
+.input-actions {
+    display:    flex;
+    gap:        4px;
+    margin-top: 4px;
+    justify-content: flex-end;
+}
+
+/* ── Notificaciones Toast estilo Terra ────────────────────────────────────── */
+#zonachat-toast-container {
+    position:       fixed;
+    bottom:         16px;
+    right:          16px;
+    z-index:        9999;
+    display:        flex;
+    flex-direction: column;
+    gap:            4px;
+}
+
+.zonachat-toast {
+    background: var(--win-gray);
+    border-top:    2px solid var(--win-border-light);
+    border-left:   2px solid var(--win-border-light);
+    border-right:  2px solid var(--win-border-darker);
+    border-bottom: 2px solid var(--win-border-darker);
+    border-radius: 0;
+    backdrop-filter: none;
+    padding:        0;
+    min-width:      240px;
+    max-width:      320px;
+    font-size:      11px;
+    box-shadow:     2px 2px 6px rgba(0,0,0,0.4);
+    animation:      slideInTerra 0.2s ease-out forwards;
+    overflow:       hidden;
+}
+
+/* Barra de título del toast */
+.zonachat-toast::before {
+    content:    attr(data-title);
+    display:    block;
+    background: linear-gradient(90deg,
+        var(--terra-blue-header) 0%,
+        #2a6acc 60%,
+        #6699cc 100%
+    );
+    color:       var(--text-white);
+    font-size:   11px;
+    font-weight: bold;
+    padding:     3px 8px;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+}
+
+.zonachat-toast .toast-body {
+    padding: 6px 10px;
+    color:   var(--text-dark);
+}
+
+.zonachat-toast.error::before {
+    background: linear-gradient(90deg, #990000 0%, #cc2200 60%, #dd4422 100%);
+}
+
+.zonachat-toast.success::before {
+    background: linear-gradient(90deg,
+        var(--terra-blue-header) 0%,
+        #2a6acc 60%,
+        #6699cc 100%
+    );
+}
+
+@keyframes slideInTerra {
+    from { transform: translateX(110%); opacity: 0; }
+    to   { transform: translateX(0);   opacity: 1; }
+}
+
+.fade-out {
+    animation: fadeOutTerra 0.3s ease-in forwards;
+}
+
+@keyframes fadeOutTerra {
+    to { opacity: 0; transform: translateY(8px); }
+}
+
+/* ── Modal ────────────────────────────────────────────────────────────────── */
+.modal-overlay {
+    position:        fixed;
+    inset:           0;
+    background:      rgba(0, 0, 0, 0.5);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    z-index:         1000;
+}
+
+.modal-content {
+    min-width: 280px;
+    max-width: 360px;
+    width:     90%;
+}
+
+.modal-content input {
+    margin-bottom: 10px;
+}
+
+.modal-buttons {
+    display:         flex;
+    gap:             6px;
+    justify-content: flex-end;
+    padding-top:     6px;
+    border-top:      1px solid #b0aca4;
+}
+
+/* ── Elementos de fondo – desactivados en estilo Terra ───────────────────── */
+.background-decor { display: none; }
+
+/* ── Scrollbar global ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 16px; height: 16px; }
+::-webkit-scrollbar-track { background: var(--win-gray); }
+::-webkit-scrollbar-thumb {
+    background:    var(--win-gray);
+    border-top:    1px solid var(--win-border-light);
+    border-left:   1px solid var(--win-border-light);
+    border-right:  1px solid var(--win-border-darker);
+    border-bottom: 1px solid var(--win-border-darker);
+    min-height:    20px;
+}
+
+/* ── Extras para páginas nuevas ─────────────────────────────────────────── */
+.win-titlebar {
+    background: linear-gradient(90deg, var(--terra-blue-header) 0%, #2a6acc 60%, #6699cc 100%);
+    color: #fff; font-size: 11px; font-weight: bold;
+    padding: 4px 8px; border-bottom: 1px solid #001166;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: space-between;
+}
+.card-body { padding: 10px 12px; }
+.separator { border: none; border-top: 1px solid var(--win-bd); border-bottom: 1px solid var(--win-bl); margin: 8px 0; }
+.d-flex { display: flex; }
+.gap-4  { gap: 4px; }
+.gap-8  { gap: 8px; }
+.align-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.text-small  { font-size: 10px; color: var(--text-system); }
+.text-center { text-align: center; }
+.mt-4  { margin-top: 4px; }
+.mt-8  { margin-top: 8px; }
+.mb-8  { margin-bottom: 8px; }
+.hidden { display: none !important; }
+.background-decor { display: none; }
+.win-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.win-table th { background: linear-gradient(180deg, #e8e4dc 0%, var(--win-gray) 100%); border-right: 1px solid var(--win-bd); border-bottom: 2px solid var(--win-bd); padding: 4px 8px; text-align: left; font-weight: bold; cursor: pointer; user-select: none; white-space: nowrap; }
+.win-table th:hover { background: linear-gradient(180deg, #d0dcf0 0%, #b8c8e8 100%); }
+.win-table td { padding: 3px 8px; border-bottom: 1px solid #ddd; vertical-align: middle; }
+.win-table tr:hover td { background: #c8d8f8; }
+.paginacion { display: flex; gap: 3px; align-items: center; padding: 4px 0; flex-wrap: wrap; }
+.paginacion button { min-width: 26px; padding: 3px 6px; font-size: 11px; }
+.paginacion button.activa { background: linear-gradient(180deg, #4488ee 0%, var(--terra-blue-mid) 100%); color: #fff; border-color: #001166; }
+.paginacion-info { font-size: 10px; color: var(--text-system); margin-left: 8px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { min-width: 280px; max-width: 420px; width: 90%; }
+.modal-buttons { display: flex; gap: 6px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid #b0aca4; margin-top: 8px; }
+.avatar { display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #4488ee, #002288); color: #fff; font-weight: bold; user-select: none; flex-shrink: 0; border-color: var(--win-bd) var(--win-bl) var(--win-bl) var(--win-bd); border-style: solid; border-width: 1px; }
+.avatar-sm { width: 24px; height: 24px; font-size: 11px; }
+.avatar-md { width: 48px; height: 48px; font-size: 20px; }
+.avatar-lg { width: 80px; height: 80px; font-size: 32px; }
+.dot-online  { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--terra-green); border: 1px solid #005500; flex-shrink: 0; }
+.dot-offline { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--win-gray-dark); border: 1px solid #404040; flex-shrink: 0; }
+.badge-mod   { background: var(--terra-blue-mid); color: #fff; font-size: 9px; padding: 1px 5px; border: 1px solid #001166; }
+.badge-admin { background: var(--terra-red); color: #fff; font-size: 9px; padding: 1px 5px; border: 1px solid #880000; }
+.status-badge { background: var(--terra-green); color: #fff; font-size: 9px; font-weight: bold; padding: 1px 6px; border: 1px solid #005500; text-transform: uppercase; letter-spacing: 0.5px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; }
+.post-card { background: var(--win-white); border-bottom: 1px dotted #ccc; padding: 6px 8px; font-size: 11px; }
+.post-card:last-child { border-bottom: none; }
+.post-header { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; flex-wrap: wrap; }
+.post-header strong { color: var(--terra-blue-dark); font-size: 11px; }
+.post-header .fecha { color: var(--text-system); font-size: 10px; }
+.post-content { color: var(--text-dark); line-height: 1.5; padding: 0 2px; }
+.post-actions { margin-top: 5px; display: flex; gap: 4px; align-items: center; }
+.respuesta-anidada { margin-left: 28px; border-left: 3px solid var(--terra-blue-light); background: #f8f8ff; }
+.estado-pendiente { background: #fff3cd; color: #664d00; border: 1px solid #ffcc00; padding: 1px 6px; font-size: 10px; }
+.estado-resuelto  { background: #d4edda; color: #155724; border: 1px solid #28a745; padding: 1px 6px; font-size: 10px; }
+.nav-links { display: flex; gap: 4px; align-items: center; flex: 1; padding-left: 16px; }
+.nav-links a { color: #cce0ff; font-size: 11px; font-weight: bold; text-decoration: none; padding: 2px 8px; border-radius: 2px; }
+.nav-links a:hover  { background: rgba(255,255,255,0.2); color: #fff; }
+.nav-links a.activo { background: rgba(255,255,255,0.25); color: #fff; border-bottom: 2px solid var(--terra-yellow); }
+#nav-perfil-btn, #nav-mod-btn, #nav-logout-btn { display: none; }
+.btn-warn { background: linear-gradient(180deg, #ffdd55 0%, #cc8800 100%); color: #442200; border-color: #ffee88 #885500 #885500 #ffee88; }
+.btn-warn:hover { background: linear-gradient(180deg, #ffee88 0%, #ddaa00 100%); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODO OSCURO — ZonaChat.net
+   Activado añadiendo la clase 'dark' al <html>.
+   Paleta: fondo carbón, paneles gris pizarra, acentos azul eléctrico.
+   Mantiene el lenguaje visual Win98/Terra pero con cromatismo nocturno.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+html.dark {
+    --terra-blue-dark:   #5599ff;
+    --terra-blue-mid:    #4488ee;
+    --terra-blue-light:  #88bbff;
+    --terra-blue-header: #1a3a6e;
+    --terra-green:       #44cc44;
+    --terra-red:         #ff5555;
+    --terra-yellow:      #ffdd44;
+
+    --win-gray:          #2d2d2d;
+    --win-gray-light:    #1a1a1a;
+    --win-gray-dark:     #555555;
+    --win-white:         #1e1e1e;
+    --win-bl:            #555555;
+    --win-bd:            #111111;
+    --win-bdd:           #000000;
+
+    --text-dark:         #e8e8e8;
+    --text-label:        #88bbff;
+    --text-system:       #888888;
+    --text-white:        #ffffff;
+    --text-link:         #77aaff;
+}
+
+/* Fondo general oscuro */
+html.dark body {
+    background: #1a1a1a;
+    color: var(--text-dark);
+}
+
+/* Navbar oscura */
+html.dark .glass-nav {
+    background: linear-gradient(180deg, #0d1f44 0%, #0a1530 55%, #060e20 100%);
+    border-top-color: #2244aa;
+    border-bottom-color: #000;
+}
+
+/* Barras de título de panel */
+html.dark .win-titlebar,
+html.dark .glass-card > h2:first-child {
+    background: linear-gradient(90deg, #0d1f44 0%, #1a3a6e 60%, #2a4a8e 100%);
+    border-bottom-color: #000;
+}
+
+/* Paneles / glass-card */
+html.dark .glass-card {
+    background: var(--win-gray);
+    border-color: #444 #000 #000 #444;
+}
+
+/* Inputs */
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="text"],
+html.dark input[type="search"],
+html.dark select,
+html.dark textarea {
+    background: #141414;
+    color: #e0e0e0;
+    border-color: #111 #444 #444 #111;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder { color: #555; }
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+    border-color: var(--terra-blue-mid);
+    box-shadow: inset 0 0 0 1px rgba(68,136,238,0.4);
+}
+
+/* Botones base */
+html.dark button,
+html.dark .btn {
+    background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+    color: #ddd;
+    border-color: #555 #111 #111 #555;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+html.dark button:hover,
+html.dark .btn:hover {
+    background: linear-gradient(180deg, #1a3a6e 0%, #0d2550 100%);
     color: #fff;
-    display: block;
+    border-color: var(--terra-blue-mid);
 }
+html.dark button:active { background: #0a1a3a; }
+
+/* Botón primario oscuro */
+html.dark .btn-primary {
+    background: linear-gradient(180deg, #2255cc 0%, #1144aa 50%, #0033880 100%);
+    color: #fff;
+    border-color: #4477ee #001155 #001155 #4477ee;
+}
+html.dark .btn-primary:hover {
+    background: linear-gradient(180deg, #3366dd 0%, #2255bb 100%);
+}
+
+/* Tabla */
+html.dark .win-table th {
+    background: linear-gradient(180deg, #333 0%, #222 100%);
+    color: #ccc;
+    border-color: #111;
+}
+html.dark .win-table td { border-bottom-color: #333; color: #ddd; }
+html.dark .win-table tr:hover td { background: #1a3a6e; }
+
+/* Posts / mensajes */
+html.dark .post-card {
+    background: #1e1e1e;
+    border-bottom-color: #333;
+}
+html.dark .post-header strong { color: var(--terra-blue-light); }
+html.dark .post-content       { color: #ccc; }
+
+/* Contenedores con fondo blanco */
+html.dark #contenedor-mensajes-publicos,
+html.dark .chat-viewport,
+html.dark #lista-grupos,
+html.dark .sugerencias,
+html.dark .razones-box,
+html.dark .details-box,
+html.dark .resumen-stat,
+html.dark .usuario-actual-box {
+    background: #141414;
+    border-color: #111 #444 #444 #111;
+    color: #ccc;
+}
+
+/* Scrollbar oscuro */
+html.dark ::-webkit-scrollbar-track  { background: #1a1a1a; }
+html.dark ::-webkit-scrollbar-thumb  { background: #333; border-color: #444 #111 #111 #444; }
+html.dark ::-webkit-scrollbar-button { background: #2a2a2a; border-color: #444 #111 #111 #444; }
+
+/* Toasts oscuros */
+html.dark .zonachat-toast {
+    background: #2a2a2a;
+    border-color: #444 #000 #000 #444;
+    box-shadow: 3px 3px 10px rgba(0,0,0,0.7);
+}
+html.dark .zonachat-toast .toast-body { color: #ddd; }
+
+/* Separador */
+html.dark .separator {
+    border-top-color: #111;
+    border-bottom-color: #444;
+}
+
+/* Nav links */
+html.dark .nav-links a       { color: #88aadd; }
+html.dark .nav-links a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+html.dark .nav-links a.activo { border-bottom-color: var(--terra-yellow); }
+
+/* Form footer */
+html.dark .form-footer        { color: #666; border-top-color: #333; }
+html.dark .form-footer a      { color: var(--terra-blue-light); }
+
+/* Strength bar container */
+html.dark .strength-meter-container { background: #111; border-color: #111 #444 #444 #111; }
+
+/* Grupo items sidebar */
+html.dark .grupo-item         { color: #ccc; border-bottom-color: #333; }
+html.dark .grupo-item:hover   { background: #1a3a6e; color: #fff; }
+html.dark .grupo-item.active  { background: var(--terra-blue-mid); }
+
+/* Modal overlay */
+html.dark .modal-overlay { background: rgba(0,0,0,0.75); }
+
+/* Badges */
+html.dark .badge-mod   { background: #1a3a7e; border-color: #000; }
+html.dark .badge-admin { background: #7e1a1a; border-color: #000; }
+
+/* Status bar en páginas de error */
+html.dark .status-bar  { background: #222; border-top-color: #111; color: #888; }
+html.dark .status-bar span { border-right-color: #333; }
+
+/* Tabs en perfil */
+html.dark .tab-btn       { background: #2a2a2a; color: #aaa; border-color: #111; }
+html.dark .tab-btn.activa { background: #1e1e1e; color: var(--terra-blue-light); border-bottom-color: #1e1e1e; }
+html.dark .tab-panel      { background: #1e1e1e; border-color: #111; color: #ccc; }
+
+/* Panel moderación */
+html.dark .mod-nav-item       { color: #ccc; border-bottom-color: #333; }
+html.dark .mod-nav-item:hover { background: #1a3a6e; }
+html.dark .mod-nav-item.activo { background: var(--terra-blue-mid); color: #fff; }
+
+/* Toggle oscuro visible */
+.dark-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-color: rgba(255,255,255,0.3) rgba(0,0,0,0.3) rgba(0,0,0,0.3) rgba(255,255,255,0.3);
+    border-style: solid;
+    border-width: 1px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-radius: 2px;
+    user-select: none;
+    transition: background 0.15s;
+}
+.dark-toggle:hover { background: rgba(255,255,255,0.25); }
+.dark-toggle .toggle-icon { font-size: 13px; }

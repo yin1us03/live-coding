@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+    // Aplicar modo oscuro antes del primer render para evitar flash
+    (function(){
+        const d = localStorage.getItem('zonachat_dark');
+        const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (d === '1' || (d === null && sys)) document.documentElement.classList.add('dark');
+    })();
+</script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZonaChat.net — Hilo</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hilo-item { cursor:pointer; }
+        .hilo-item:hover td { background:#c8d8f8; }
+        .tag-nuevo { background:var(--terra-red); color:#fff; font-size:9px; padding:1px 5px; margin-left:4px; }
+        .form-respuesta { background:#f0f4ff; border:1px solid #c0ccee; padding:8px; margin-top:6px; }
+        .citar-bloque { background:#ffffee; border-left:3px solid #ccaa00; padding:4px 8px; margin-bottom:6px; font-size:10px; color:#665500; }
+        .hilo-stats { font-size:10px; color:var(--text-system); display:flex; gap:12px; flex-wrap:wrap; }
+        .acciones-hilo { display:flex; gap:4px; flex-wrap:wrap; }
+    </style>
+</head>
+<body>
+<div id="zonachat-toast-container"></div>
+<nav class="glass-nav"><div class="container nav-wrapper">
+    <a href="index.html" class="logo">Zona<span>Chat.net</span></a>
+    <div class="nav-links">
+        <a href="salas.html">🏠 Salas</a>
+        <a href="hilo.html" class="activo">💬 Hilos</a>
+        <a href="perfil.html">👤 Mi Perfil</a>
+    </div>
+    <div id="auth-controls">
+        <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
+        <button id="nav-perfil-btn" onclick="location.href='perfil.html'"></button>
+        <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
+        <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
+    </div>
+</div>        <button class="dark-toggle" onclick="toggleModoOscuro()" title="Cambiar modo">
+            <span class="toggle-icon">🌙</span>
+            <span class="toggle-label">Modo oscuro</span>
+        </button>
+</nav>
+
+<main class="container">
+
+    <!-- Breadcrumb -->
+    <div style="font-size:11px;padding:4px 0;margin-bottom:4px;color:var(--text-system)">
+        <a href="salas.html">Salas</a> &rsaquo;
+        <span id="bc-sala">–</span> &rsaquo;
+        <span id="bc-hilo" style="color:var(--text-dark)">–</span>
+    </div>
+
+    <!-- Panel izquierdo: lista de hilos de la sala -->
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:8px;align-items:start">
+
+        <div>
+            <div class="glass-card">
+                <div class="win-titlebar">
+                    <span id="titulo-sala">Hilos de la Sala</span>
+                    <button id="btn-nuevo-hilo" class="btn-small btn-success" onclick="abrirModalHilo()" style="display:none">+ Nuevo</button>
+                </div>
+                <div style="overflow-y:auto;max-height:480px;">
+                    <table class="win-table" style="font-size:10px;">
+                        <thead><tr><th>Título</th><th style="width:44px">Resp.</th></tr></thead>
+                        <tbody id="lista-hilos"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Usuarios online en la sala -->
+            <div class="glass-card">
+                <div class="win-titlebar"><span>👥 Online ahora</span></div>
+                <div id="lista-online" style="padding:6px 8px;"></div>
+            </div>
+        </div>
+
+        <!-- Panel derecho: hilo activo -->
+        <div>
+            <div class="glass-card" id="panel-hilo">
+                <div class="win-titlebar">
+                    <span id="titulo-hilo">Selecciona un hilo</span>
+                </div>
+                <div id="cuerpo-hilo" class="card-body">
+                    <p class="text-small text-center" style="padding:20px 0">Haz clic en un hilo de la lista para verlo.</p>
+                </div>
+            </div>
+
+            <!-- Formulario nueva respuesta -->
+            <div class="glass-card" id="panel-responder" style="display:none">
+                <div class="win-titlebar"><span id="titulo-responder">✏️ Responder</span></div>
+                <div class="card-body">
+                    <div id="cita-preview" class="citar-bloque hidden"></div>
+                    <div class="input-group">
+                        <label for="texto-respuesta">Tu mensaje</label>
+                        <textarea id="texto-respuesta" maxlength="2000" rows="4" placeholder="Escribe tu respuesta..."></textarea>
+                        <span class="input-hint" id="char-count">0 / 2000 caracteres</span>
+                    </div>
+                    <div class="acciones-hilo">
+                        <button onclick="enviarRespuesta()">Enviar respuesta</button>
+                        <button onclick="cancelarRespuesta()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal nuevo hilo -->
+<div id="modal-hilo" class="modal-overlay hidden">
+    <div class="glass-card modal-content" style="max-width:500px">
+        <div class="win-titlebar"><span>✏️ Nuevo Hilo</span></div>
+        <div class="card-body">
+            <div class="input-group"><label>Título <span style="color:red">*</span></label><input type="text" id="nh-titulo" maxlength="120" placeholder="Escribe el título del hilo..."></div>
+            <div class="input-group"><label>Mensaje inicial <span style="color:red">*</span></label><textarea id="nh-cuerpo" maxlength="2000" rows="5" placeholder="Escribe el primer mensaje..."></textarea></div>
+            <div class="modal-buttons">
+                <button onclick="confirmarNuevoHilo()" style="padding:4px 20px">Publicar</button>
+                <button class="btn-danger" onclick="cerrarModalHilo()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal reportar -->
+<div id="modal-reportar" class="modal-overlay hidden">
+    <div class="glass-card modal-content">
+        <div class="win-titlebar"><span>⚠️ Reportar mensaje</span></div>
+        <div class="card-body">
+            <p class="text-small mb-8">Indica el motivo del reporte. El equipo de moderación lo revisará.</p>
+            <div class="input-group">
+                <label>Motivo</label>
+                <select id="reporte-motivo">
+                    <option value="spam">Spam o publicidad</option>
+                    <option value="ofensivo">Contenido ofensivo</option>
+                    <option value="flood">Flood / repetición</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Comentario (opcional)</label><textarea id="reporte-comentario" maxlength="300" rows="3"></textarea></div>
+            <div class="modal-buttons">
+                <button onclick="confirmarReporte()" style="padding:4px 20px">Enviar reporte</button>
+                <button class="btn-danger" onclick="cerrarModalReportar()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+'use strict';
+const params    = new URLSearchParams(location.search);
+const salaIdUrl = parseInt(params.get('sala')) || 1;
+const hiloIdUrl = parseInt(params.get('hilo')) || null;
+
+let hiloActivo    = null;
+let citandoId     = null;
+let usuarioActual = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+    iniciarSesionGuardada(u => {
+        usuarioActual = u;
+        renderizarNavbar(u);
+        if (u) document.getElementById('btn-nuevo-hilo').style.display = 'inline-block';
+    }, () => renderizarNavbar(null));
+    cargarSala();
+    cargarOnline();
+});
+
+// ── Sala ──────────────────────────────────────────────────────────────────────
+function cargarSala() {
+    const sala = MOCK.salas.find(s => s.id === salaIdUrl) || MOCK.salas[0];
+    document.getElementById('titulo-sala').textContent = `${sala.icono} ${sala.nombre}`;
+    document.getElementById('bc-sala').textContent = sala.nombre;
+    document.title = `ZonaChat.net — ${sala.nombre}`;
+
+    const hilosDeSala = MOCK.hilos.filter(h => h.salaId === sala.id);
+    const tbody = document.getElementById('lista-hilos');
+    tbody.innerHTML = '';
+
+    if (!hilosDeSala.length) {
+        const tr = tbody.insertRow(); const td = tr.insertCell();
+        td.colSpan=2; td.textContent='No hay hilos aún. ¡Crea el primero!';
+        td.style.cssText='padding:12px;text-align:center;color:var(--text-system)';
+        return;
+    }
+
+    hilosDeSala.forEach(hilo => {
+        const tr = tbody.insertRow(); tr.className='hilo-item';
+        tr.onclick = () => cargarHilo(hilo.id);
+
+        const tdTit = tr.insertCell();
+        const span = document.createElement('span');
+        span.textContent = truncar(hilo.titulo, 40);
+        span.style.fontWeight = 'bold'; span.style.color = 'var(--terra-blue-dark)';
+        const autor = document.createElement('div');
+        autor.textContent = `@${hilo.autor} · ${formatearFecha(hilo.fecha)}`;
+        autor.style.cssText='font-size:9px;color:var(--text-system)';
+        tdTit.appendChild(span); tdTit.appendChild(autor);
+
+        const tdResp = tr.insertCell(); tdResp.textContent = hilo.respuestas.length;
+        tdResp.style.cssText='text-align:center;color:var(--text-system)';
+    });
+
+    // Auto-cargar hilo si viene por URL
+    const hiloInicial = hiloIdUrl
+        ? hilosDeSala.find(h => h.id === hiloIdUrl)
+        : hilosDeSala[0];
+    if (hiloInicial) cargarHilo(hiloInicial.id);
+}
+
+// ── Hilo ──────────────────────────────────────────────────────────────────────
+function cargarHilo(id) {
+    hiloActivo = MOCK.hilos.find(h => h.id === id);
+    if (!hiloActivo) return;
+
+    document.getElementById('titulo-hilo').textContent = truncar(hiloActivo.titulo, 60);
+    document.getElementById('bc-hilo').textContent     = truncar(hiloActivo.titulo, 40);
+
+    const cuerpo = document.getElementById('cuerpo-hilo');
+    cuerpo.innerHTML = '';
+
+    // Mensaje original
+    cuerpo.appendChild(crearTarjetaMensaje({
+        id:      0,
+        autor:   hiloActivo.autor,
+        fecha:   hiloActivo.fecha,
+        contenido: hiloActivo.contenido,
+        votos:   0,
+        esOriginal: true,
+    }));
+
+    // Stats
+    const stats = document.createElement('div');
+    stats.className = 'hilo-stats mt-4 mb-8';
+    stats.innerHTML = `
+        <span>👁 ${hiloActivo.vistas.toLocaleString('es-ES')} vistas</span>
+        <span>💬 ${hiloActivo.respuestas.length} respuestas</span>
+    `;
+    cuerpo.appendChild(stats);
+
+    // Separador
+    const sep = document.createElement('hr'); sep.className='separator'; cuerpo.appendChild(sep);
+
+    // Respuestas
+    if (hiloActivo.respuestas.length === 0) {
+        const p = document.createElement('p');
+        p.className='text-small'; p.style.padding='8px 0';
+        p.textContent = 'Sé el primero en responder.';
+        cuerpo.appendChild(p);
+    } else {
+        hiloActivo.respuestas.forEach(r => {
+            cuerpo.appendChild(crearTarjetaMensaje(r));
+        });
+    }
+
+    // Botón responder
+    if (usuarioActual) {
+        const btnResp = document.createElement('button');
+        btnResp.textContent = '✏️ Responder al hilo'; btnResp.className='mt-8';
+        btnResp.onclick = () => mostrarFormRespuesta(null);
+        cuerpo.appendChild(btnResp);
+    }
+
+    document.getElementById('panel-responder').style.display = 'none';
+    cancelarRespuesta();
+}
+
+function crearTarjetaMensaje(r) {
+    const card = document.createElement('div');
+    card.className = `post-card${r.esOriginal? '':' respuesta-anidada'}`;
+
+    // Header
+    const header = document.createElement('div'); header.className='post-header';
+
+    const av = document.createElement('div');
+    av.className='avatar avatar-sm';
+    av.textContent = (r.autor||'?')[0].toUpperCase();
+
+    const nombre = document.createElement('strong'); nombre.textContent = `@${r.autor}`;
+    const fecha  = document.createElement('span');  fecha.className='fecha'; fecha.textContent = formatearFecha(r.fecha);
+
+    if (r.moderador) {
+        const badge = document.createElement('span'); badge.className='badge-mod'; badge.textContent='MOD'; header.appendChild(badge);
+    }
+    header.append(av, nombre, fecha);
+    if (r.esOriginal) {
+        const badgeOP = document.createElement('span'); badgeOP.style.cssText='font-size:9px;background:#003399;color:#fff;padding:1px 5px;margin-left:2px'; badgeOP.textContent='OP'; header.appendChild(badgeOP);
+    }
+
+    // Contenido
+    const content = document.createElement('div'); content.className='post-content mt-4'; content.textContent=r.contenido;
+
+    // Acciones
+    const acciones = document.createElement('div'); acciones.className='post-actions';
+
+    const btnVotar = document.createElement('button'); btnVotar.className='btn-small';
+    btnVotar.textContent=`▲ ${r.votos||0}`; btnVotar.title='Votar mensaje';
+    btnVotar.onclick = () => { if(!usuarioActual){mostrarAviso('Debes iniciar sesión para votar.','error');return;} r.votos=(r.votos||0)+1; btnVotar.textContent=`▲ ${r.votos}`; mostrarAviso('Voto registrado.','success'); };
+
+    const btnCitar = document.createElement('button'); btnCitar.className='btn-small';
+    btnCitar.textContent='↩ Citar'; btnCitar.title='Citar este mensaje';
+    btnCitar.onclick = () => { if(!usuarioActual){mostrarAviso('Debes iniciar sesión.','error');return;} mostrarFormRespuesta(r); };
+
+    const btnReportar = document.createElement('button'); btnReportar.className='btn-small btn-warn';
+    btnReportar.textContent='⚑ Reportar';
+    btnReportar.onclick = () => { if(!usuarioActual){mostrarAviso('Debes iniciar sesión.','error');return;} abrirModalReportar(r.id||0); };
+
+    acciones.append(btnVotar, btnCitar, btnReportar);
+
+    // Borrar (solo mod/admin, no en mensaje original)
+    if (!r.esOriginal && usuarioActual && (usuarioActual.rol==='moderador'||usuarioActual.rol==='admin')) {
+        const btnBorrar = document.createElement('button'); btnBorrar.className='btn-small btn-danger';
+        btnBorrar.textContent='🗑 Borrar';
+        btnBorrar.onclick = () => {
+            hiloActivo.respuestas = hiloActivo.respuestas.filter(x => x.id !== r.id);
+            cargarHilo(hiloActivo.id);
+            mostrarAviso('Mensaje eliminado.','success');
+        };
+        acciones.appendChild(btnBorrar);
+    }
+
+    card.append(header, content, acciones);
+    return card;
+}
+
+// ── Formulario respuesta ──────────────────────────────────────────────────────
+function mostrarFormRespuesta(citado) {
+    citandoId = citado ? citado.id : null;
+    const panel   = document.getElementById('panel-responder');
+    const preview = document.getElementById('cita-preview');
+    const textarea= document.getElementById('texto-respuesta');
+
+    if (citado) {
+        preview.classList.remove('hidden');
+        preview.textContent = `Citando a @${citado.autor}: "${truncar(citado.contenido, 80)}"`;
+        document.getElementById('titulo-responder').textContent = `↩ Respondiendo a @${citado.autor}`;
+    } else {
+        preview.classList.add('hidden');
+        document.getElementById('titulo-responder').textContent = '✏️ Responder al hilo';
+    }
+
+    panel.style.display = 'block';
+    textarea.value = '';
+    textarea.focus();
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const ta = document.getElementById('texto-respuesta');
+    if (ta) ta.addEventListener('input', () => {
+        document.getElementById('char-count').textContent = `${ta.value.length} / 2000 caracteres`;
+    });
+});
+
+function cancelarRespuesta() {
+    citandoId = null;
+    const ta = document.getElementById('texto-respuesta');
+    if (ta) ta.value = '';
+    document.getElementById('cita-preview').classList.add('hidden');
+}
+
+function enviarRespuesta() {
+    if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
+    if (!hiloActivo)    { mostrarAviso('Selecciona un hilo primero.', 'error'); return; }
+
+    const ta    = document.getElementById('texto-respuesta');
+    const texto = ta.value.trim();
+    if (!texto) { mostrarAviso('El mensaje no puede estar vacío.', 'error'); return; }
+    if (texto.length > 2000) { mostrarAviso('El mensaje es demasiado largo.', 'error'); return; }
+
+    const nuevaResp = {
+        id:        Date.now(),
+        autor:     usuarioActual.nombre,
+        fecha:     new Date().toISOString(),
+        contenido: texto,
+        votos:     0,
+        moderador: usuarioActual.rol === 'moderador',
+        citandoId: citandoId,
+    };
+
+    hiloActivo.respuestas.push(nuevaResp);
+    cargarHilo(hiloActivo.id);
+    document.getElementById('panel-responder').style.display = 'none';
+    mostrarAviso('Respuesta publicada.', 'success');
+    // TODO: fetch POST /api/hilos/:id/respuestas
+}
+
+// ── Nuevo hilo ────────────────────────────────────────────────────────────────
+function abrirModalHilo()  { document.getElementById('modal-hilo').classList.remove('hidden'); }
+function cerrarModalHilo() { document.getElementById('modal-hilo').classList.add('hidden'); }
+
+function confirmarNuevoHilo() {
+    if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
+    const titulo = document.getElementById('nh-titulo').value.trim();
+    const cuerpo = document.getElementById('nh-cuerpo').value.trim();
+    if (!titulo) { mostrarAviso('El título es obligatorio.', 'error'); return; }
+    if (!cuerpo) { mostrarAviso('El mensaje inicial es obligatorio.', 'error'); return; }
+
+    const nuevoHilo = {
+        id: Date.now(), salaId: salaIdUrl,
+        titulo, autor: usuarioActual.nombre,
+        fecha: new Date().toISOString(),
+        vistas: 1, contenido: cuerpo, respuestas: [],
+    };
+    MOCK.hilos.push(nuevoHilo);
+    cerrarModalHilo();
+    document.getElementById('nh-titulo').value = '';
+    document.getElementById('nh-cuerpo').value = '';
+    cargarSala();
+    cargarHilo(nuevoHilo.id);
+    mostrarAviso('Hilo creado correctamente.', 'success');
+}
+
+// ── Reporte ────────────────────────────────────────────────────────────────────
+let reportandoMsgId = null;
+function abrirModalReportar(id) { reportandoMsgId=id; document.getElementById('modal-reportar').classList.remove('hidden'); }
+function cerrarModalReportar()  { document.getElementById('modal-reportar').classList.add('hidden'); }
+function confirmarReporte() {
+    const motivo = document.getElementById('reporte-motivo').value;
+    MOCK.reportes.push({ id: Date.now(), tipo:'mensaje', objetivo:`msg#${reportandoMsgId}`, razon: motivo, estado:'pendiente', fecha: new Date().toISOString() });
+    cerrarModalReportar();
+    mostrarAviso('Reporte enviado. El equipo de moderación lo revisará.', 'success');
+}
+
+// ── Online ─────────────────────────────────────────────────────────────────────
+function cargarOnline() {
+    const cont = document.getElementById('lista-online');
+    MOCK.usuarios.filter(u => u.estado==='online').forEach(u => {
+        const div = document.createElement('div');
+        div.style.cssText='display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dotted #ccc;font-size:11px';
+        const dot = document.createElement('span'); dot.className=`dot-${u.estado}`;
+        const av  = document.createElement('div');  av.className='avatar avatar-sm'; av.textContent=u.nombre[0].toUpperCase();
+        const nom = document.createElement('span'); nom.textContent=u.nombre;
+        if (u.rol==='moderador') { const b=document.createElement('span'); b.className='badge-mod'; b.textContent='MOD'; div.append(dot,av,nom,b); }
+        else if (u.rol==='admin') { const b=document.createElement('span'); b.className='badge-admin'; b.textContent='ADMIN'; div.append(dot,av,nom,b); }
+        else div.append(dot,av,nom);
+        cont.appendChild(div);
+    });
+}
+</script>
+<script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>
+</body></html>

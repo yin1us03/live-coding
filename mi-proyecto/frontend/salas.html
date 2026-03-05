@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+    // Aplicar modo oscuro antes del primer render para evitar flash
+    (function(){
+        const d = localStorage.getItem('zonachat_dark');
+        const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (d === '1' || (d === null && sys)) document.documentElement.classList.add('dark');
+    })();
+</script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZonaChat.net — Salas</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="zonachat-toast-container"></div>
+<nav class="glass-nav"><div class="container nav-wrapper">
+    <a href="index.html" class="logo">Zona<span>Chat.net</span></a>
+    <div class="nav-links">
+        <a href="salas.html" class="activo">🏠 Salas</a>
+        <a href="perfil.html">👤 Mi Perfil</a>
+    </div>
+    <div id="auth-controls">
+        <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
+        <button id="nav-perfil-btn" onclick="location.href='perfil.html'"></button>
+        <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
+        <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
+    </div>
+</div>        <button class="dark-toggle" onclick="toggleModoOscuro()" title="Cambiar modo">
+            <span class="toggle-icon">🌙</span>
+            <span class="toggle-label">Modo oscuro</span>
+        </button>
+</nav>
+
+<main class="container">
+
+    <!-- Buscador -->
+    <div class="glass-card">
+        <div class="win-titlebar"><span>🔍 Buscar Salas</span></div>
+        <div class="card-body">
+            <div class="d-flex gap-8 align-center">
+                <input type="search" id="buscador-input" placeholder="Nombre o temática..." style="flex:1">
+                <button onclick="buscar()">Buscar</button>
+                <button onclick="limpiarBusqueda()">Ver todas</button>
+            </div>
+            <div class="d-flex gap-8 mt-4 align-center" style="flex-wrap:wrap;">
+                <span class="text-small">Filtrar:</span>
+                <label style="font-weight:normal;cursor:pointer"><input type="radio" name="filtro" value="todas" checked onchange="filtrar('todas')"> Todas</label>
+                <label style="font-weight:normal;cursor:pointer"><input type="radio" name="filtro" value="activas" onchange="filtrar('activas')"> Más activas</label>
+                <label style="font-weight:normal;cursor:pointer"><input type="radio" name="filtro" value="nuevas" onchange="filtrar('nuevas')"> Más nuevas</label>
+                <span id="conteo-salas" class="text-small" style="margin-left:auto;"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de salas -->
+    <div class="glass-card">
+        <div class="win-titlebar">
+            <span>📋 Salas Disponibles</span>
+            <button id="btn-crear-sala" class="btn-small btn-success" onclick="abrirModal()" style="display:none">+ Nueva Sala</button>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="win-table">
+                <thead><tr>
+                    <th style="width:30px"></th>
+                    <th onclick="ordenarPor('nombre')" id="th-nombre">Sala ↕</th>
+                    <th>Descripción</th>
+                    <th onclick="ordenarPor('miembros')" id="th-miembros" style="width:80px">Miembros ↕</th>
+                    <th onclick="ordenarPor('mensajes')" id="th-mensajes" style="width:80px">Mensajes ↕</th>
+                    <th style="width:90px">Acción</th>
+                </tr></thead>
+                <tbody id="tbody-salas"></tbody>
+            </table>
+        </div>
+        <div class="card-body d-flex justify-between align-center">
+            <div class="paginacion" id="paginacion"></div>
+            <span id="paginacion-info" class="paginacion-info"></span>
+        </div>
+    </div>
+</main>
+
+<!-- Modal crear sala -->
+<div id="modal-sala" class="modal-overlay hidden">
+    <div class="glass-card modal-content">
+        <div class="win-titlebar"><span>➕ Crear Nueva Sala</span></div>
+        <div class="card-body">
+            <div class="input-group"><label>Nombre <span style="color:red">*</span></label><input type="text" id="ms-nombre" maxlength="50" placeholder="Ej: Literatura española"></div>
+            <div class="input-group"><label>Descripción</label><textarea id="ms-desc" maxlength="200" placeholder="De qué trata esta sala..."></textarea></div>
+            <div class="input-group"><label>Icono (emoji)</label><input type="text" id="ms-icono" maxlength="4" placeholder="💬" style="width:60px"></div>
+            <div class="modal-buttons">
+                <button onclick="confirmarCrear()" style="padding:4px 20px">Crear</button>
+                <button class="btn-danger" onclick="cerrarModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+'use strict';
+let filtradas  = [...MOCK.salas];
+let orden      = { campo: 'nombre', asc: true };
+let pagina     = 1;
+const POR_PAG  = 5;
+
+window.addEventListener('DOMContentLoaded', () => {
+    iniciarSesionGuardada(u => {
+        renderizarNavbar(u);
+        if (u.rol === 'moderador' || u.rol === 'admin')
+            document.getElementById('btn-crear-sala').style.display = 'inline-block';
+    }, () => renderizarNavbar(null));
+
+    document.getElementById('buscador-input').addEventListener('keydown', e => { if (e.key === 'Enter') buscar(); });
+    renderTabla();
+});
+
+function buscar() {
+    const q = document.getElementById('buscador-input').value.trim().toLowerCase();
+    filtradas = MOCK.salas.filter(s => s.nombre.toLowerCase().includes(q) || s.descripcion.toLowerCase().includes(q));
+    pagina = 1; renderTabla();
+}
+function limpiarBusqueda() { document.getElementById('buscador-input').value = ''; filtradas = [...MOCK.salas]; pagina = 1; renderTabla(); }
+function filtrar(v) {
+    if (v === 'activas') filtradas = [...MOCK.salas].sort((a,b) => b.mensajes - a.mensajes);
+    else if (v === 'nuevas') filtradas = [...MOCK.salas].sort((a,b) => b.id - a.id);
+    else filtradas = [...MOCK.salas];
+    pagina = 1; renderTabla();
+}
+function ordenarPor(campo) {
+    orden = { campo, asc: orden.campo === campo ? !orden.asc : true };
+    filtradas.sort((a,b) => {
+        const va = typeof a[campo]==='string'? a[campo].toLowerCase(): a[campo];
+        const vb = typeof b[campo]==='string'? b[campo].toLowerCase(): b[campo];
+        return orden.asc ? (va>vb?1:-1) : (va<vb?1:-1);
+    });
+    renderTabla();
+}
+
+function renderTabla() {
+    const tbody = document.getElementById('tbody-salas');
+    tbody.innerHTML = '';
+    const inicio = (pagina-1)*POR_PAG;
+    const slice  = filtradas.slice(inicio, inicio+POR_PAG);
+
+    if (!slice.length) {
+        const tr = tbody.insertRow(); const td = tr.insertCell();
+        td.colSpan=6; td.textContent='No se encontraron salas.';
+        td.style.cssText='text-align:center;padding:16px;color:var(--text-system)';
+    } else {
+        slice.forEach(sala => {
+            const tr = tbody.insertRow();
+            // Icono
+            const tdi = tr.insertCell(); tdi.textContent = sala.icono; tdi.style.cssText='text-align:center;font-size:16px';
+            // Nombre
+            const tdn = tr.insertCell(); const a = document.createElement('a');
+            a.textContent = sala.nombre; a.href = `hilo.html?sala=${sala.id}`; a.style.fontWeight='bold'; tdn.appendChild(a);
+            // Desc
+            const tdd = tr.insertCell(); tdd.textContent = truncar(sala.descripcion, 60); tdd.style.color='var(--text-system)';
+            // Miembros
+            const tdm = tr.insertCell(); tdm.textContent = sala.miembros.toLocaleString('es-ES'); tdm.style.textAlign='right';
+            // Mensajes
+            const tdms = tr.insertCell(); tdms.textContent = sala.mensajes.toLocaleString('es-ES'); tdms.style.textAlign='right';
+            // Acción
+            const tda = tr.insertCell();
+            const btn = document.createElement('button'); btn.textContent='Entrar »'; btn.className='btn-small btn-success';
+            btn.onclick = () => location.href=`hilo.html?sala=${sala.id}`; tda.appendChild(btn);
+        });
+    }
+    document.getElementById('conteo-salas').textContent = `${filtradas.length} sala${filtradas.length!==1?'s':''}`;
+    renderPaginacion();
+}
+
+function renderPaginacion() {
+    const total = Math.ceil(filtradas.length / POR_PAG);
+    const cont  = document.getElementById('paginacion');
+    const info  = document.getElementById('paginacion-info');
+    cont.innerHTML = '';
+
+    const prev = document.createElement('button'); prev.textContent='◄'; prev.className='btn-small';
+    prev.disabled = pagina===1; prev.onclick = () => { pagina--; renderTabla(); }; cont.appendChild(prev);
+
+    for (let i=1; i<=total; i++) {
+        const b = document.createElement('button'); b.textContent=i; b.className=`btn-small${i===pagina?' activa':''}`;
+        b.onclick = () => { pagina=i; renderTabla(); }; cont.appendChild(b);
+    }
+    const next = document.createElement('button'); next.textContent='►'; next.className='btn-small';
+    next.disabled = pagina===total||total===0; next.onclick = () => { pagina++; renderTabla(); }; cont.appendChild(next);
+
+    const inicio = (pagina-1)*POR_PAG+1, fin = Math.min(pagina*POR_PAG, filtradas.length);
+    info.textContent = filtradas.length>0 ? `Mostrando ${inicio}–${fin} de ${filtradas.length}` : '';
+}
+
+function abrirModal()  { document.getElementById('modal-sala').classList.remove('hidden'); }
+function cerrarModal() { document.getElementById('modal-sala').classList.add('hidden'); }
+function confirmarCrear() {
+    const nombre = document.getElementById('ms-nombre').value.trim();
+    const desc   = document.getElementById('ms-desc').value.trim();
+    const icono  = document.getElementById('ms-icono').value.trim() || '💬';
+    if (!nombre) { mostrarAviso('El nombre es obligatorio.', 'error'); return; }
+    MOCK.salas.push({ id: MOCK.salas.length+1, nombre, descripcion: desc, miembros: 1, mensajes: 0, icono });
+    filtradas = [...MOCK.salas]; renderTabla();
+    mostrarAviso(`Sala "${nombre}" creada.`, 'success'); cerrarModal();
+    ['ms-nombre','ms-desc','ms-icono'].forEach(id => document.getElementById(id).value='');
+}
+</script>
+<script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>
+</body></html>

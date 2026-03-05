@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+    // Aplicar modo oscuro antes del primer render para evitar flash
+    (function(){
+        const d = localStorage.getItem('zonachat_dark');
+        const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (d === '1' || (d === null && sys)) document.documentElement.classList.add('dark');
+    })();
+</script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZonaChat.net — Moderación</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .mod-grid    { display:grid; grid-template-columns:180px 1fr; gap:8px; align-items:start; }
+        .mod-nav-item { padding:5px 10px; font-size:11px; cursor:pointer; border-bottom:1px dotted #ccc; display:flex; align-items:center; gap:6px; }
+        .mod-nav-item:hover   { background:#c8d8f8; }
+        .mod-nav-item.activo  { background:var(--terra-blue-mid); color:#fff; font-weight:bold; }
+        .mod-section { display:none; }
+        .mod-section.activa  { display:block; }
+        .resumen-stat { background:var(--win-white); border:1px solid var(--win-bd); padding:10px; text-align:center; }
+        .resumen-stat .num   { font-size:22px; font-weight:bold; color:var(--terra-blue-dark); }
+        .resumen-stat .label { font-size:10px; color:var(--text-system); }
+        .log-item    { font-size:11px; padding:3px 0; border-bottom:1px dotted #ddd; display:flex; gap:8px; }
+        .log-item:last-child { border-bottom:none; }
+        .log-accion  { font-weight:bold; color:var(--terra-blue-dark); white-space:nowrap; }
+        .log-fecha   { color:var(--text-system); font-size:10px; white-space:nowrap; }
+        .ban-badge   { background:var(--terra-red); color:#fff; font-size:9px; padding:1px 5px; }
+    </style>
+</head>
+<body>
+<div id="zonachat-toast-container"></div>
+<nav class="glass-nav"><div class="container nav-wrapper">
+    <a href="index.html" class="logo">Zona<span>Chat.net</span></a>
+    <div class="nav-links">
+        <a href="salas.html">🏠 Salas</a>
+        <a href="perfil.html">👤 Mi Perfil</a>
+        <a href="moderacion.html" class="activo">🛡 Moderación</a>
+    </div>
+    <div id="auth-controls">
+        <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
+        <button id="nav-perfil-btn" onclick="location.href='perfil.html'"></button>
+        <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
+        <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
+    </div>
+</div>        <button class="dark-toggle" onclick="toggleModoOscuro()" title="Cambiar modo">
+            <span class="toggle-icon">🌙</span>
+            <span class="toggle-label">Modo oscuro</span>
+        </button>
+</nav>
+
+<main class="container">
+
+    <!-- Acceso denegado (se oculta si es mod) -->
+    <div id="panel-acceso-denegado" class="glass-card">
+        <div class="win-titlebar"><span>⛔ Acceso Restringido</span></div>
+        <div class="card-body" style="text-align:center;padding:30px">
+            <p style="font-size:16px;margin-bottom:8px">🚫</p>
+            <p>Solo los <strong>moderadores</strong> y <strong>administradores</strong> pueden acceder a esta sección.</p>
+            <button class="mt-8" onclick="location.href='salas.html'" style="margin-top:12px">Volver a Salas</button>
+        </div>
+    </div>
+
+    <!-- Panel de moderación (solo visible para mod/admin) -->
+    <div id="panel-mod" class="hidden">
+
+        <!-- Resumen -->
+        <div class="glass-card">
+            <div class="win-titlebar"><span>🛡 Panel de Moderación</span></div>
+            <div class="card-body">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+                    <div class="resumen-stat"><div class="num" id="stat-reportes-pendientes">0</div><div class="label">Reportes pendientes</div></div>
+                    <div class="resumen-stat"><div class="num" id="stat-usuarios-ban">0</div><div class="label">Usuarios baneados</div></div>
+                    <div class="resumen-stat"><div class="num" id="stat-total-usuarios">0</div><div class="label">Usuarios totales</div></div>
+                    <div class="resumen-stat"><div class="num" id="stat-total-hilos">0</div><div class="label">Hilos activos</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mod-grid">
+            <!-- Menú lateral -->
+            <div class="glass-card">
+                <div class="win-titlebar"><span>Secciones</span></div>
+                <div style="padding:4px 0">
+                    <div class="mod-nav-item activo" onclick="cambiarSeccion('reportes',this)">⚑ Reportes <span id="badge-reportes" style="background:red;color:#fff;font-size:9px;padding:1px 5px;margin-left:auto"></span></div>
+                    <div class="mod-nav-item" onclick="cambiarSeccion('usuarios',this)">👥 Usuarios</div>
+                    <div class="mod-nav-item" onclick="cambiarSeccion('hilos',this)">💬 Hilos</div>
+                    <div class="mod-nav-item" onclick="cambiarSeccion('log',this)">📋 Log de acciones</div>
+                </div>
+            </div>
+
+            <!-- Contenido secciones -->
+            <div>
+
+                <!-- Reportes -->
+                <div id="mod-reportes" class="mod-section activa">
+                    <div class="glass-card">
+                        <div class="win-titlebar">
+                            <span>⚑ Reportes</span>
+                            <div style="display:flex;gap:4px">
+                                <select id="filtro-estado-reporte" onchange="renderReportes()" style="font-size:10px;padding:2px 4px">
+                                    <option value="todos">Todos</option>
+                                    <option value="pendiente" selected>Pendientes</option>
+                                    <option value="resuelto">Resueltos</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="win-table" id="tabla-reportes">
+                                <thead><tr>
+                                    <th style="width:28px">#</th>
+                                    <th>Tipo</th>
+                                    <th>Objetivo</th>
+                                    <th>Razón</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                    <th style="width:130px">Acciones</th>
+                                </tr></thead>
+                                <tbody id="tbody-reportes"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usuarios -->
+                <div id="mod-usuarios" class="mod-section">
+                    <div class="glass-card">
+                        <div class="win-titlebar">
+                            <span>👥 Gestión de Usuarios</span>
+                        </div>
+                        <div class="card-body" style="padding-bottom:4px">
+                            <div class="d-flex gap-8 align-center">
+                                <input type="search" id="buscar-usuario" placeholder="Buscar por nombre..." style="flex:1" oninput="renderUsuarios()">
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="win-table">
+                                <thead><tr>
+                                    <th>Usuario</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Mensajes</th>
+                                    <th style="width:160px">Acciones</th>
+                                </tr></thead>
+                                <tbody id="tbody-usuarios"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hilos -->
+                <div id="mod-hilos" class="mod-section">
+                    <div class="glass-card">
+                        <div class="win-titlebar"><span>💬 Gestión de Hilos</span></div>
+                        <div style="overflow-x:auto">
+                            <table class="win-table">
+                                <thead><tr>
+                                    <th>Título</th>
+                                    <th>Autor</th>
+                                    <th>Sala</th>
+                                    <th>Resp.</th>
+                                    <th style="width:100px">Acciones</th>
+                                </tr></thead>
+                                <tbody id="tbody-hilos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Log -->
+                <div id="mod-log" class="mod-section">
+                    <div class="glass-card">
+                        <div class="win-titlebar"><span>📋 Registro de Acciones de Moderación</span></div>
+                        <div id="lista-log" class="card-body"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal ban usuario -->
+<div id="modal-ban" class="modal-overlay hidden">
+    <div class="glass-card modal-content">
+        <div class="win-titlebar"><span>🚫 Banear Usuario</span></div>
+        <div class="card-body">
+            <p class="mb-8">Vas a banear a <strong id="ban-nombre-objetivo"></strong>. Indica el motivo y la duración.</p>
+            <div class="input-group">
+                <label>Motivo</label>
+                <select id="ban-motivo">
+                    <option value="spam">Spam repetido</option>
+                    <option value="acoso">Acoso a usuarios</option>
+                    <option value="bot">Bot / automatizado</option>
+                    <option value="contenido">Contenido inapropiado</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Duración</label>
+                <select id="ban-duracion">
+                    <option value="1d">1 día</option>
+                    <option value="7d">7 días</option>
+                    <option value="30d">30 días</option>
+                    <option value="perm">Permanente</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Notas internas (opcional)</label><textarea id="ban-notas" maxlength="300" rows="2"></textarea></div>
+            <div class="modal-buttons">
+                <button class="btn-danger" onclick="ejecutarBan()">🚫 Confirmar ban</button>
+                <button onclick="cerrarModalBan()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+'use strict';
+let modLog    = [];
+let usuariosBaneados = [];
+let usuarioActual = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+    iniciarSesionGuardada(u => {
+        usuarioActual = u;
+        renderizarNavbar(u);
+        if (u.rol === 'moderador' || u.rol === 'admin') {
+            document.getElementById('panel-acceso-denegado').classList.add('hidden');
+            document.getElementById('panel-mod').classList.remove('hidden');
+            inicializarPanel();
+        }
+        // Si es usuario normal, se queda el panel de acceso denegado visible
+    }, () => { renderizarNavbar(null); });
+});
+
+function inicializarPanel() {
+    actualizarEstadisticas();
+    renderReportes();
+    renderUsuarios();
+    renderHilos();
+    renderLog();
+
+    const pendientes = MOCK.reportes.filter(r=>r.estado==='pendiente').length;
+    const badge = document.getElementById('badge-reportes');
+    if (pendientes>0) { badge.textContent=pendientes; } else { badge.style.display='none'; }
+}
+
+function actualizarEstadisticas() {
+    document.getElementById('stat-reportes-pendientes').textContent = MOCK.reportes.filter(r=>r.estado==='pendiente').length;
+    document.getElementById('stat-usuarios-ban').textContent       = usuariosBaneados.length;
+    document.getElementById('stat-total-usuarios').textContent     = MOCK.usuarios.length;
+    document.getElementById('stat-total-hilos').textContent        = MOCK.hilos.length;
+}
+
+function cambiarSeccion(id, el) {
+    document.querySelectorAll('.mod-section').forEach(s=>s.classList.remove('activa'));
+    document.querySelectorAll('.mod-nav-item').forEach(n=>n.classList.remove('activo'));
+    document.getElementById(`mod-${id}`).classList.add('activa');
+    el.classList.add('activo');
+}
+
+// ── Reportes ──────────────────────────────────────────────────────────────────
+function renderReportes() {
+    const filtro = document.getElementById('filtro-estado-reporte').value;
+    const lista  = filtro==='todos' ? MOCK.reportes : MOCK.reportes.filter(r=>r.estado===filtro);
+    const tbody  = document.getElementById('tbody-reportes');
+    tbody.innerHTML = '';
+
+    if (!lista.length) {
+        const tr=tbody.insertRow(); const td=tr.insertCell();
+        td.colSpan=7; td.textContent='No hay reportes.'; td.style.cssText='text-align:center;padding:12px;color:var(--text-system)';
+        return;
+    }
+
+    lista.forEach(r => {
+        const tr = tbody.insertRow();
+
+        const tdId=tr.insertCell(); tdId.textContent=r.id; tdId.style.textAlign='center';
+
+        const tdTipo=tr.insertCell();
+        const tipoIcon = r.tipo==='mensaje'?'💬':'👤';
+        tdTipo.textContent=`${tipoIcon} ${r.tipo}`;
+
+        const tdObj=tr.insertCell(); tdObj.textContent=r.objetivo; tdObj.style.fontWeight='bold';
+
+        const tdRazon=tr.insertCell(); tdRazon.textContent=r.razon;
+
+        const tdEst=tr.insertCell();
+        const span=document.createElement('span'); span.className=`estado-${r.estado}`; span.textContent=r.estado;
+        tdEst.appendChild(span);
+
+        const tdFecha=tr.insertCell(); tdFecha.textContent=formatearFecha(r.fecha); tdFecha.style.fontSize='10px';
+
+        const tdAcc=tr.insertCell();
+        if (r.estado==='pendiente') {
+            const btnResolver=document.createElement('button'); btnResolver.textContent='✔ Resolver'; btnResolver.className='btn-small btn-success';
+            btnResolver.onclick=()=>{ r.estado='resuelto'; registrarLog(`Reporte #${r.id} resuelto`,'✔'); renderReportes(); actualizarEstadisticas(); mostrarAviso('Reporte marcado como resuelto.','success'); };
+
+            const btnBan=document.createElement('button'); btnBan.textContent='🚫 Ban'; btnBan.className='btn-small btn-danger'; btnBan.style.marginLeft='3px';
+            btnBan.onclick=()=>abrirModalBan(r.objetivo);
+            tdAcc.append(btnResolver,btnBan);
+        } else {
+            const btnReabrir=document.createElement('button'); btnReabrir.textContent='↩ Reabrir'; btnReabrir.className='btn-small';
+            btnReabrir.onclick=()=>{ r.estado='pendiente'; registrarLog(`Reporte #${r.id} reabierto`,'↩'); renderReportes(); actualizarEstadisticas(); };
+            tdAcc.appendChild(btnReabrir);
+        }
+        tbody.appendChild(tr);
+    });
+}
+
+// ── Usuarios ──────────────────────────────────────────────────────────────────
+function renderUsuarios() {
+    const q = (document.getElementById('buscar-usuario').value||'').toLowerCase();
+    const lista = MOCK.usuarios.filter(u => u.nombre.toLowerCase().includes(q));
+    const tbody = document.getElementById('tbody-usuarios');
+    tbody.innerHTML='';
+
+    lista.forEach(u => {
+        const tr=tbody.insertRow();
+        const esBaneado = usuariosBaneados.includes(u.nombre);
+
+        const tdNom=tr.insertCell();
+        const av=document.createElement('div'); av.className='avatar avatar-sm'; av.style.display='inline-flex'; av.style.marginRight='6px'; av.textContent=u.nombre[0].toUpperCase();
+        const nom=document.createElement('span'); nom.textContent=u.nombre; nom.style.fontWeight='bold';
+        if (esBaneado) { const b=document.createElement('span'); b.className='ban-badge'; b.style.marginLeft='4px'; b.textContent='BANEADO'; nom.appendChild(b); }
+        tdNom.append(av,nom);
+
+        const tdRol=tr.insertCell();
+        const b=document.createElement('span');
+        if (u.rol==='admin') { b.className='badge-admin'; b.textContent='ADMIN'; }
+        else if (u.rol==='moderador') { b.className='badge-mod'; b.textContent='MOD'; }
+        else { b.textContent='Usuario'; }
+        tdRol.appendChild(b);
+
+        const tdEst=tr.insertCell();
+        const dot=document.createElement('span'); dot.className=`dot-${u.estado}`; dot.style.marginRight='4px';
+        const estSpan=document.createElement('span'); estSpan.textContent=u.estado;
+        tdEst.append(dot,estSpan);
+
+        const tdMsg=tr.insertCell(); tdMsg.textContent=u.mensajes.toLocaleString('es-ES'); tdMsg.style.textAlign='right';
+
+        const tdAcc=tr.insertCell();
+        if (u.rol !== 'admin' && usuarioActual && u.nombre !== usuarioActual.nombre) {
+            if (!esBaneado) {
+                const btnBan=document.createElement('button'); btnBan.textContent='🚫 Banear'; btnBan.className='btn-small btn-danger';
+                btnBan.onclick=()=>abrirModalBan(u.nombre); tdAcc.appendChild(btnBan);
+            } else {
+                const btnDesban=document.createElement('button'); btnDesban.textContent='✔ Desbanear'; btnDesban.className='btn-small btn-success';
+                btnDesban.onclick=()=>{
+                    usuariosBaneados=usuariosBaneados.filter(n=>n!==u.nombre);
+                    registrarLog(`${u.nombre} desbaneado`,'✔'); renderUsuarios(); actualizarEstadisticas();
+                    mostrarAviso(`${u.nombre} desbaneado.`,'success');
+                };
+                tdAcc.appendChild(btnDesban);
+            }
+        } else {
+            const span=document.createElement('span'); span.className='text-small'; span.textContent='–'; tdAcc.appendChild(span);
+        }
+    });
+}
+
+// ── Hilos ─────────────────────────────────────────────────────────────────────
+function renderHilos() {
+    const tbody=document.getElementById('tbody-hilos');
+    tbody.innerHTML='';
+    MOCK.hilos.forEach(h=>{
+        const sala=MOCK.salas.find(s=>s.id===h.salaId);
+        const tr=tbody.insertRow();
+
+        const tdTit=tr.insertCell(); const a=document.createElement('a');
+        a.textContent=truncar(h.titulo,50); a.href=`hilo.html?sala=${h.salaId}&hilo=${h.id}`; tdTit.appendChild(a);
+
+        const tdAut=tr.insertCell(); tdAut.textContent=h.autor;
+        const tdSala=tr.insertCell(); tdSala.textContent=sala? `${sala.icono} ${sala.nombre}`:'?';
+        const tdResp=tr.insertCell(); tdResp.textContent=h.respuestas.length; tdResp.style.textAlign='right';
+
+        const tdAcc=tr.insertCell();
+        const btnBorrar=document.createElement('button'); btnBorrar.textContent='🗑 Eliminar'; btnBorrar.className='btn-small btn-danger';
+        btnBorrar.onclick=()=>{
+            if (!confirm(`¿Eliminar el hilo "${truncar(h.titulo,40)}"?`)) return;
+            const idx=MOCK.hilos.indexOf(h); if(idx>-1) MOCK.hilos.splice(idx,1);
+            registrarLog(`Hilo #${h.id} eliminado: "${truncar(h.titulo,30)}"`,'🗑');
+            renderHilos(); actualizarEstadisticas();
+            mostrarAviso('Hilo eliminado.','success');
+        };
+        tdAcc.appendChild(btnBorrar);
+    });
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function registrarLog(accion, icono='📋') {
+    modLog.unshift({ accion, icono, fecha: new Date().toISOString(), mod: usuarioActual?.nombre||'Sistema' });
+    renderLog();
+}
+
+function renderLog() {
+    const cont=document.getElementById('lista-log');
+    cont.innerHTML='';
+    if (!modLog.length) { cont.innerHTML='<p class="text-small">Sin acciones registradas en esta sesión.</p>'; return; }
+    modLog.forEach(entry=>{
+        const div=document.createElement('div'); div.className='log-item';
+        const icon=document.createElement('span'); icon.textContent=entry.icono; icon.style.flexShrink='0';
+        const acc=document.createElement('span'); acc.className='log-accion'; acc.textContent=entry.accion;
+        const mod=document.createElement('span'); mod.className='text-small'; mod.textContent=`por @${entry.mod}`;
+        const fecha=document.createElement('span'); fecha.className='log-fecha'; fecha.textContent=formatearFecha(entry.fecha);
+        div.append(icon,acc,mod,fecha); cont.appendChild(div);
+    });
+}
+
+// ── Ban modal ──────────────────────────────────────────────────────────────────
+let baneandoNombre=null;
+function abrirModalBan(nombre) { baneandoNombre=nombre; document.getElementById('ban-nombre-objetivo').textContent=nombre; document.getElementById('modal-ban').classList.remove('hidden'); }
+function cerrarModalBan() { document.getElementById('modal-ban').classList.add('hidden'); baneandoNombre=null; }
+function ejecutarBan() {
+    if (!baneandoNombre) return;
+    const motivo  =document.getElementById('ban-motivo').value;
+    const duracion=document.getElementById('ban-duracion').value;
+    if (!usuariosBaneados.includes(baneandoNombre)) usuariosBaneados.push(baneandoNombre);
+
+    MOCK.reportes.filter(r=>r.objetivo===baneandoNombre&&r.estado==='pendiente').forEach(r=>r.estado='resuelto');
+    registrarLog(`${baneandoNombre} baneado (${motivo}, ${duracion})`,'🚫');
+    renderReportes(); renderUsuarios(); actualizarEstadisticas();
+    mostrarAviso(`Usuario ${baneandoNombre} baneado por ${duracion}.`,'success');
+    cerrarModalBan();
+    // TODO: fetch POST /api/admin/ban con { usuario: baneandoNombre, motivo, duracion }
+}
+</script>
+<script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>
+</body></html>

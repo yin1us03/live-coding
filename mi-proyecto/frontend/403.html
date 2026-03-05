@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+    // Aplicar modo oscuro antes del primer render para evitar flash
+    (function(){
+        const d = localStorage.getItem('zonachat_dark');
+        const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (d === '1' || (d === null && sys)) document.documentElement.classList.add('dark');
+    })();
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZonaChat.net — Acceso denegado</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .error-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .error-panel { width: 100%; max-width: 520px; }
+
+        /* Barra de título amarilla — advertencia, no error crítico */
+        .dialog-titlebar {
+            background: linear-gradient(90deg, #7a5800 0%, #cc8800 55%, #ffcc00 100%);
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #664400;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.6);
+            user-select: none;
+        }
+        .win-controls { display: flex; gap: 2px; }
+        .win-btn {
+            width: 16px; height: 14px;
+            font-size: 9px; line-height: 14px; text-align: center;
+            background: linear-gradient(180deg, #f0ece4 0%, #d4d0c8 100%);
+            border-top: 1px solid #fff; border-left: 1px solid #fff;
+            border-right: 1px solid #404040; border-bottom: 1px solid #404040;
+            cursor: pointer; color: #000; font-weight: bold;
+        }
+        .win-btn.close { background: linear-gradient(180deg, #ff9999 0%, #cc0000 100%); color: #fff; }
+        .win-btn.close:hover { background: #ff0000; }
+
+        .dialog-body { background: var(--win-gray); padding: 16px 20px; }
+
+        .dialog-icon-row { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 14px; }
+
+        .error-icon {
+            font-size: 44px;
+            flex-shrink: 0;
+            animation: iconPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes iconPulse {
+            0%,100% { transform: scale(1);    opacity: 1; }
+            50%      { transform: scale(1.08); opacity: 0.85; }
+        }
+
+        .error-code {
+            font-size: 36px;
+            font-weight: bold;
+            color: #7a5800;
+            line-height: 1;
+            letter-spacing: -1px;
+            text-shadow: 1px 1px 0 #ffe080;
+        }
+        .error-title { font-size: 13px; font-weight: bold; color: #000; margin: 4px 0 6px; }
+        .error-desc  { font-size: 11px; color: #333; line-height: 1.6; }
+
+        .dialog-sep {
+            border: none;
+            border-top: 1px solid #808080;
+            border-bottom: 1px solid #fff;
+            margin: 12px 0;
+        }
+
+        /* Razones posibles del 403 */
+        .razones-box {
+            background: var(--win-white);
+            border-top:  1px solid var(--win-bd);
+            border-left: 1px solid var(--win-bd);
+            padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+        .razones-box p { font-size: 11px; font-weight: bold; color: var(--text-label); margin-bottom: 6px; }
+        .razon-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 11px;
+            color: #333;
+            padding: 3px 0;
+            border-bottom: 1px dotted #ddd;
+        }
+        .razon-item:last-child { border-bottom: none; }
+        .razon-icon { flex-shrink: 0; font-size: 12px; }
+
+        /* Acciones según estado de sesión */
+        .accion-logueado  { display: none; }
+        .accion-anonimo   { display: none; }
+
+        .dialog-actions {
+            display: flex; gap: 6px;
+            justify-content: center;
+            margin-top: 14px;
+        }
+        .dialog-actions button { min-width: 90px; }
+
+        .status-bar {
+            background: var(--win-gray);
+            border-top: 2px solid var(--win-bd);
+            padding: 2px 8px;
+            font-size: 10px;
+            color: #555;
+            display: flex;
+            gap: 12px;
+        }
+        .status-bar span {
+            border-right: 1px solid var(--win-bd);
+            padding-right: 12px;
+        }
+        .status-bar span:last-child { border-right: none; }
+
+        /* Segmento de usuario actual */
+        .usuario-actual-box {
+            background: #fffbe6;
+            border: 1px solid #ccaa00;
+            padding: 6px 10px;
+            font-size: 11px;
+            margin-bottom: 8px;
+            display: none;
+        }
+        .usuario-actual-box.visible { display: block; }
+    </style>
+</head>
+<body>
+
+<nav class="glass-nav">
+    <div class="container nav-wrapper">
+        <a href="index.html" class="logo">Zona<span>Chat.net</span></a>
+        <div class="nav-links">
+            <a href="salas.html">🏠 Salas</a>
+            <a href="perfil.html">👤 Mi Perfil</a>
+        </div>
+        <div id="auth-controls">
+            <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
+            <button id="nav-perfil-btn" onclick="location.href='perfil.html'" style="display:none"></button>
+            <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
+            <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
+        </div>
+    </div>
+        <button class="dark-toggle" onclick="toggleModoOscuro()" title="Cambiar modo">
+            <span class="toggle-icon">🌙</span>
+            <span class="toggle-label">Modo oscuro</span>
+        </button>
+</nav>
+
+<div class="error-wrapper">
+    <div class="error-panel">
+
+        <div class="glass-card" style="padding:0">
+
+            <!-- Barra de título amarilla -->
+            <div class="dialog-titlebar">
+                <span>⚠️ ZonaChat.net — Acceso restringido</span>
+                <div class="win-controls">
+                    <div class="win-btn">_</div>
+                    <div class="win-btn">□</div>
+                    <div class="win-btn close" onclick="location.href='index.html'">✕</div>
+                </div>
+            </div>
+
+            <div class="dialog-body">
+
+                <!-- Icono + código -->
+                <div class="dialog-icon-row">
+                    <div class="error-icon">🔒</div>
+                    <div>
+                        <div class="error-code">403</div>
+                        <div class="error-title">Acceso denegado</div>
+                        <div class="error-desc">
+                            No tienes permisos suficientes para acceder
+                            a este recurso. Si crees que esto es un error,
+                            contacta con un moderador.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sesión activa: muestra quién eres y qué rol tienes -->
+                <div class="usuario-actual-box" id="box-usuario-actual">
+                    🔑 Conectado como <strong id="nombre-sesion"></strong>
+                    — Rol: <strong id="rol-sesion"></strong>
+                    <br><span style="font-size:10px;color:#665500">
+                        Este recurso requiere un rol superior al tuyo.
+                    </span>
+                </div>
+
+                <hr class="dialog-sep">
+
+                <!-- Razones posibles -->
+                <div class="razones-box">
+                    <p>Posibles causas:</p>
+                    <div class="razon-item"><span class="razon-icon">👤</span><span>No has iniciado sesión o tu sesión ha expirado.</span></div>
+                    <div class="razon-item"><span class="razon-icon">🛡</span><span>Esta sección es exclusiva para moderadores o administradores.</span></div>
+                    <div class="razon-item"><span class="razon-icon">🚫</span><span>Tu cuenta ha sido suspendida temporalmente.</span></div>
+                    <div class="razon-item"><span class="razon-icon">🔗</span><span>El enlace que usaste está mal formado o ha caducado.</span></div>
+                </div>
+
+                <!-- Acciones para usuario anónimo -->
+                <div class="accion-anonimo" id="bloque-anonimo">
+                    <p style="font-size:11px;color:#555;margin-bottom:8px">
+                        Identifícate para comprobar si tienes acceso:
+                    </p>
+                    <div class="dialog-actions">
+                        <button onclick="history.back()">◄ Volver</button>
+                        <button class="btn-primary" style="width:auto;padding:4px 20px" onclick="location.href='index.html'">
+                            🔑 Iniciar sesión
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Acciones para usuario logueado sin permisos -->
+                <div class="accion-logueado" id="bloque-logueado">
+                    <p style="font-size:11px;color:#555;margin-bottom:8px">
+                        Tu cuenta no tiene acceso a esta sección.
+                    </p>
+                    <div class="dialog-actions">
+                        <button onclick="history.back()">◄ Volver</button>
+                        <button onclick="location.href='salas.html'">🏠 Ir a Salas</button>
+                        <button class="btn-primary" style="width:auto;padding:4px 20px" onclick="location.href='perfil.html'">
+                            👤 Mi Perfil
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Barra de estado -->
+            <div class="status-bar">
+                <span>Error 403</span>
+                <span id="status-ruta"></span>
+                <span id="status-hora"></span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+'use strict';
+
+window.addEventListener('DOMContentLoaded', () => {
+    iniciarSesionGuardada(
+        (usuario) => {
+            renderizarNavbar(usuario);
+
+            // Mostrar info del usuario y bloque de acciones correcto
+            document.getElementById('nombre-sesion').textContent = usuario.nombre;
+            document.getElementById('rol-sesion').textContent    = usuario.rol;
+            document.getElementById('box-usuario-actual').classList.add('visible');
+            document.getElementById('bloque-logueado').style.display = 'block';
+        },
+        () => {
+            renderizarNavbar(null);
+            document.getElementById('bloque-anonimo').style.display = 'block';
+        }
+    );
+
+    // Barra de estado
+    const ahora = new Date();
+    document.getElementById('status-ruta').textContent = location.pathname + location.search;
+    document.getElementById('status-hora').textContent = ahora.toLocaleTimeString('es-ES');
+});
+</script>
+<script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>
+</body>
+</html>

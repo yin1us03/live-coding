@@ -1,21 +1,87 @@
 version: '3.8'
 
+# ══════════════════════════════════════════════════════════════════════════════
+# AeroForum — docker-compose.yml
+#
+# Estructura esperada del proyecto:
+#   mi-proyecto/
+#   ├── backend/
+#   │   ├── app.py
+#   │   ├── Dockerfile
+#   │   ├── requirements.txt
+#   │   └── data/          ← SQLite persiste aquí (NO dentro del contenedor)
+#   ├── frontend/
+#   │   ├── index.html, salas.html, hilo.html, perfil.html, moderacion.html
+#   │   ├── shared.js, script.js, style.css
+#   ├── nginx.conf          ← Config de seguridad HTTP
+#   ├── docker-compose.yml
+#   └── .env                ← SECRET_KEY (nunca commitear)
+#
+# PARA ARRANCAR:
+#   1. Crea .env en la raíz:  SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
+#   2. Asegúrate de que existe la carpeta:  mkdir -p backend/data
+#   3. docker-compose up --build
+#   4. Frontend → http://localhost:8080
+#      API      → http://localhost:3000/api  (solo en desarrollo)
+# ══════════════════════════════════════════════════════════════════════════════
+
 services:
+
+  # ── Backend Flask ─────────────────────────────────────────────────────────
   api:
     build: ./backend
     ports:
-      - "3000:5000" # Mapeamos el puerto 3000 del host al 5000 de Flask
+      # Solo accesible desde localhost, no expuesto a la red local.
+      # En producción: eliminar estas líneas (solo nginx lo necesita internamente)
+      - "127.0.0.1:3000:5000"
     volumes:
-      - ./backend/data:/app/data # ¡Regla de oro! Persistencia para la BD SQLite
-      - ./backend:/app # Para hot-reload mientras desarrollas
+      # Persistencia de SQLite fuera del contenedor (los datos sobreviven a reinicios)
+      - ./backend/data:/app/data
+      # Hot-reload en desarrollo: cambios en el código se reflejan sin rebuild.
+      # ⚠️  ELIMINAR en producción
+      - ./backend:/app
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=development      # Cambiar a 'production' antes de desplegar
+      - FLASK_APP=app.py
+      # SECRET_KEY leída del .env (nunca hardcodear aquí)
+      - SECRET_KEY=${SECRET_KEY:-cambia_esto_genera_con_python_secrets_token_hex_32}
+      - DATABASE_URL=sqlite:////app/data/foro.db
 
+    # Health check: nginx no arrancará hasta que Flask responda correctamente
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    networks:
+      - aero-net
+    restart: unless-stopped
+
+  # ── Frontend Nginx ────────────────────────────────────────────────────────
   web:
     image: nginx:alpine
     ports:
-      - "8080:80" # Tu frontend estará en http://localhost:8080
+      - "8080:80"
     volumes:
-      - ./frontend:/usr/share/nginx/html
+      # Archivos del frontend en solo lectura
+      - ./frontend:/usr/share/nginx/html:ro
+      # Nuestra config de nginx con headers de seguridad CSP, X-Frame-Options, etc.
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
     depends_on:
-      - api
+      api:
+        # Espera a que el health check del API sea exitoso
+        condition: service_healthy
+
+    networks:
+      - aero-net
+    restart: unless-stopped
+
+# ── Red interna ───────────────────────────────────────────────────────────
+# Los servicios se comunican por nombre ('api', 'web') sin exponer
+# puertos extra al host.
+networks:
+  aero-net:
+    driver: bridge
