@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroForum - Next Gen Secure</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="aero-toast-container"></div>
+
+    <div class="background-decor" aria-hidden="true">
+        <div class="bubble b1"></div>
+        <div class="bubble b2"></div>
+        <div class="bubble b3"></div>
+    </div>
+
+    <nav class="glass-nav">
+        <div class="container nav-wrapper">
+            <span class="logo" onclick="mostrarPantalla('inicio')" style="cursor:pointer">
+                Aero<span>Forum</span>
+            </span>
+            <div id="auth-controls">
+                <button id="nav-login-btn" onclick="mostrarPantalla('login')">Acceder</button>
+                <button id="nav-logout-btn" style="display: none;" onclick="cerrarSesion()" class="btn-danger">Salir</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        
+        <section id="pantalla-inicio" class="glass-card">
+            <header class="section-header">
+                <h2>Explorar Mensajes</h2>
+                <div class="status-badge">Público</div>
+            </header>
+            <div id="contenedor-mensajes-publicos">
+                <article class="post-card">
+                    <div class="post-header"><strong>@Sistema</strong> <span>Ahora</span></div>
+                    <p>Bienvenido. Identifícate para acceder a los grupos privados e invitaciones.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="pantalla-login" class="glass-card" style="display: none;">
+            <h2>Identificación</h2>
+            <form id="form-login" novalidate>
+                <div class="input-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="usuario@red.com" required>
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Contraseña</label>
+                    <input type="password" id="login-password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary">Entrar al Sistema</button>
+                <p class="form-footer">¿Nuevo? <a href="#" onclick="mostrarPantalla('registro')">Crear cuenta</a></p>
+            </form>
+        </section>
+
+        <section id="pantalla-registro" class="glass-card" style="display: none;">
+            <h2>Unirse a la Red</h2>
+            <form id="form-registro" novalidate>
+                <div style="display:none;" aria-hidden="true">
+                    <input type="text" id="hp_field" tabindex="-1" autocomplete="off">
+                </div>
+
+                <div class="input-group">
+                    <label for="reg-email">Email Corporativo</label>
+                    <input type="email" id="reg-email" placeholder="email@ejemplo.com" required>
+                    <span id="email-hint" class="input-hint"></span>
+                </div>
+
+                <div class="input-group">
+                    <label for="reg-password">Contraseña Segura</label>
+                    <input type="password" id="reg-password" placeholder="Mínimo 8 caracteres" required>
+                    <div class="strength-meter-container">
+                        <div id="strength-bar" class="strength-bar"></div>
+                    </div>
+                    <span id="pass-hint" class="input-hint">Nivel de seguridad: Vacío</span>
+                </div>
+
+                <div class="input-group">
+                    <label for="reg-password-confirm">Confirmar Contraseña</label>
+                    <input type="password" id="reg-password-confirm" placeholder="Repite tu contraseña" required>
+                    <span id="match-hint" class="input-hint"></span>
+                </div>
+
+                <button type="submit" class="btn-primary">Registrar</button>
+                <p class="form-footer"><a href="#" onclick="mostrarPantalla('login')">Ya tengo cuenta</a></p>
+            </form>
+        </section>
+
+        <section id="pantalla-portal" style="display: none;" class="portal-grid">
+            <aside class="glass-sidebar">
+                <h3>Mis Grupos</h3>
+                <ul id="lista-grupos">
+                    <li class="grupo-item active">🌐 Muro Global</li>
+                </ul>
+                <button class="btn-small" onclick="abrirModalGrupo()">+ Crear Grupo</button>
+            </aside>
+        
+            <div class="glass-card main-feed">
+                <header class="feed-header">
+                    <h2 id="titulo-chat">Muro Global</h2>
+                </header>
+        
+                <div id="contenedor-mensajes-chat" class="chat-viewport">
+                    <article class="post-card invite-card">
+                        <div class="post-header"><strong>@Innovador</strong> <span>invita...</span></div>
+                        <h3>🚀 Proyecto Alpha</h3>
+                        <button class="btn-success" onclick="aceptarInvitacion('Alpha')">Aceptar 🎫</button>
+                    </article>
+                </div>
+        
+                <div class="input-area">
+                    <textarea id="mensaje-input" placeholder="Escribe un mensaje seguro..."></textarea>
+                    <div class="input-actions">
+                        <button onclick="enviarMensaje()">Enviar ✉️</button>
+                        <button class="btn-alt" onclick="crearInvitacion()">Invitar 🎫</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-grupo" class="modal-overlay" style="display:none;">
+        <div class="glass-card modal-content">
+            <h2>Nuevo Grupo Privado</h2>
+            <input type="text" id="nombre-grupo" placeholder="Nombre de la burbuja...">
+            <div class="modal-buttons">
+                <button onclick="confirmarCrearGrupo()">Crear</button>
+                <button class="btn-danger" onclick="cerrarModalGrupo()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+/* RESET RETRO */
+body {
+    background-color: #008080; /* El mítico verde azulado de Windows 95 */
+    background-image: url('https://www.transparenttextures.com/patterns/cubes.png'); /* Textura sutil */
+    font-family: "Times New Roman", Times, serif;
+    color: #000;
+    margin: 0;
+    padding: 20px;
+}
+
+/* CONTENEDORES TIPO VENTANA */
+.glass-card, .glass-sidebar, .post-card {
+    background: #c0c0c0; /* Gris industrial */
+    border-top: 2px solid #fff;
+    border-left: 2px solid #fff;
+    border-right: 2px solid #808080;
+    border-bottom: 2px solid #808080;
+    padding: 10px;
+    box-shadow: none;
+    backdrop-filter: none; /* Adiós al cristal */
+}
+
+/* TÍTULOS DE VENTANA */
+h2, h3, .logo {
+    background: linear-gradient(90deg, #000080, #1084d0); /* Azul degradado de barra de título */
+    color: white;
+    padding: 4px 10px;
+    font-size: 1.2rem;
+    margin-top: 0;
+    border-bottom: 1px solid #000;
+}
+
+.logo span { color: #ffff00; text-decoration: underline; }
+
+/* BOTONES 90s */
+button {
+    background: #c0c0c0;
+    border-top: 2px solid #fff;
+    border-left: 2px solid #fff;
+    border-right: 2px solid #000;
+    border-bottom: 2px solid #000;
+    color: black;
+    font-weight: bold;
+    padding: 5px 15px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+}
+
+button:active {
+    border-top: 2px solid #000;
+    border-left: 2px solid #000;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    padding: 6px 14px 4px 16px;
+}
+
+/* INPUTS ESTILO INSET */
+input, textarea {
+    background: white;
+    border-top: 2px solid #808080;
+    border-left: 2px solid #808080;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    padding: 5px;
+}
+
+/* MEDIDOR DE FUERZA RETRO */
+.strength-meter-container {
+    height: 20px;
+    border: 2px solid #808080;
+    background: #eee;
+}
+
+.strength-bar {
+    height: 100%;
+    border-right: 1px solid #000;
+}
+
+/* EFECTOS DE TEXTO */
+.status-badge {
+    color: #00ff00;
+    background: black;
+    padding: 2px 5px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* MARQUESINA (Opcional pero muy 90s) */
+.nav-wrapper::after {
+    content: "BIENVENIDO A MI FORO - OPTIMIZADO PARA NETSCAPE NAVIGATOR";
+    font-size: 0.8rem;
+    color: #fff;
+    display: block;
+}
