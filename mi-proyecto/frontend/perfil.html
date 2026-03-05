@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
 <script>
-    // Aplicar modo oscuro antes del primer render para evitar flash
     (function(){
         const d = localStorage.getItem('zonachat_dark');
         const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -55,13 +54,10 @@
 
 <main class="container">
     <div class="perfil-grid">
-
-        <!-- Columna izquierda: tarjeta de usuario -->
         <div>
             <div class="glass-card">
                 <div class="win-titlebar"><span id="titulo-perfil">👤 Mi Perfil</span></div>
                 <div class="card-body" style="text-align:center;">
-                    <!-- Avatar -->
                     <div id="avatar-preview" onclick="toggleEmojiPicker()" title="Cambiar avatar">👤</div>
                     <div id="emoji-picker" class="emoji-picker hidden" style="justify-content:center">
                         <span onclick="seleccionarEmoji('😀')">😀</span><span onclick="seleccionarEmoji('🤖')">🤖</span>
@@ -78,7 +74,6 @@
                     </div>
                 </div>
                 <hr class="separator" style="margin:0">
-                <!-- Estadísticas -->
                 <div class="card-body">
                     <div class="stat-fila"><span>Mensajes</span><span id="stat-mensajes" class="stat-valor">–</span></div>
                     <div class="stat-fila"><span>Miembro desde</span><span id="stat-desde" class="stat-valor">–</span></div>
@@ -88,7 +83,6 @@
             </div>
         </div>
 
-        <!-- Columna derecha: tabs -->
         <div>
             <div class="glass-card">
                 <div class="win-titlebar"><span>⚙️ Configuración del Perfil</span></div>
@@ -101,7 +95,6 @@
                     </div>
                 </div>
 
-                <!-- Tab: Información -->
                 <div id="tab-info" class="tab-panel activa" style="margin:0 8px 8px">
                     <div class="input-group"><label>Nombre de usuario</label><input type="text" id="f-nombre" maxlength="30" placeholder="Tu nick..."></div>
                     <div class="input-group"><label>Email</label><input type="email" id="f-email" placeholder="tu@email.com"><span class="input-hint">El email no es visible para otros usuarios.</span></div>
@@ -109,7 +102,6 @@
                     <button onclick="guardarInfo()">💾 Guardar cambios</button>
                 </div>
 
-                <!-- Tab: Seguridad -->
                 <div id="tab-seguridad" class="tab-panel" style="margin:0 8px 8px">
                     <p class="text-small mb-8" style="padding:4px 0">Para cambiar la contraseña introduce la actual y la nueva dos veces.</p>
                     <div class="input-group"><label>Contraseña actual</label><input type="password" id="pass-actual" autocomplete="current-password" placeholder="••••••••"></div>
@@ -126,7 +118,6 @@
                     <button class="btn-danger" onclick="confirmarBorrarCuenta()">🗑 Eliminar mi cuenta</button>
                 </div>
 
-                <!-- Tab: Ajustes -->
                 <div id="tab-ajustes" class="tab-panel" style="margin:0 8px 8px">
                     <p class="text-small mb-8">Preferencias de notificaciones y privacidad.</p>
                     <div class="input-group">
@@ -148,7 +139,6 @@
                     <button onclick="guardarAjustes()">💾 Guardar ajustes</button>
                 </div>
 
-                <!-- Tab: Actividad -->
                 <div id="tab-actividad" class="tab-panel" style="margin:0 8px 8px">
                     <p class="text-small mb-8">Últimas participaciones del usuario.</p>
                     <div id="lista-actividad"></div>
@@ -184,11 +174,10 @@ window.addEventListener('DOMContentLoaded', () => {
         usuario = u;
         renderizarNavbar(u);
         cargarPerfil(u);
-        cargarActividad(u);
     }, () => {
         renderizarNavbar(null);
         mostrarAviso('Debes iniciar sesión para ver tu perfil.', 'error');
-        setTimeout(() => location.href='index.html', 2000);
+        setTimeout(() => location.href = 'index.html', 2000);
     });
 
     const bio = document.getElementById('f-bio');
@@ -198,135 +187,153 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function cargarPerfil(u) {
-    document.getElementById('avatar-preview').textContent   = u.avatar || u.nombre[0].toUpperCase();
-    document.getElementById('nombre-display').textContent   = u.nombre;
-    document.getElementById('estado-display').textContent   = `● ${u.estado||'online'}`;
-    document.getElementById('stat-mensajes').textContent    = (u.mensajes_total||0).toLocaleString('es-ES');
-    document.getElementById('stat-desde').textContent       = formatearFecha(u.fecha_registro);
-    document.getElementById('stat-rol').textContent         = u.rol.charAt(0).toUpperCase()+u.rol.slice(1);
-    document.getElementById('stat-estado').textContent      = 'Online';
-    document.getElementById('titulo-perfil').textContent    = `👤 ${u.nombre}`;
+    document.getElementById('avatar-preview').textContent = u.avatar || u.nombre[0].toUpperCase();
+    document.getElementById('nombre-display').textContent = u.nombre;
+    document.getElementById('estado-display').textContent = `● ${u.estado || 'online'}`;
+    document.getElementById('stat-mensajes').textContent = (u.mensajes_total || 0).toLocaleString('es-ES');
+    document.getElementById('stat-desde').textContent = formatearFecha(u.fecha_registro);
+    document.getElementById('stat-rol').textContent = u.rol.charAt(0).toUpperCase() + u.rol.slice(1);
+    document.getElementById('stat-estado').textContent = 'Online';
+    document.getElementById('titulo-perfil').textContent = `👤 ${u.nombre}`;
 
     const rolBadge = document.getElementById('rol-badge');
-    if (u.rol==='moderador') { rolBadge.innerHTML=''; const b=document.createElement('span'); b.className='badge-mod'; b.textContent='MODERADOR'; rolBadge.appendChild(b); }
-    else if (u.rol==='admin') { rolBadge.innerHTML=''; const b=document.createElement('span'); b.className='badge-admin'; b.textContent='ADMIN'; rolBadge.appendChild(b); }
+    rolBadge.innerHTML = '';
+    if (u.rol === 'moderador') {
+        const b = document.createElement('span');
+        b.className = 'badge-mod';
+        b.textContent = 'MODERADOR';
+        rolBadge.appendChild(b);
+    } else if (u.rol === 'admin') {
+        const b = document.createElement('span');
+        b.className = 'badge-admin';
+        b.textContent = 'ADMIN';
+        rolBadge.appendChild(b);
+    }
 
     // Rellenar formulario
     document.getElementById('f-nombre').value = u.nombre;
-    document.getElementById('f-email').value  = u.email||'';
-    document.getElementById('f-bio').value    = u.bio||'';
-    const bio = document.getElementById('f-bio');
-    document.getElementById('bio-count').textContent = `${bio.value.length} / 300`;
-}
-
-function cargarActividad(u) {
-    const cont = document.getElementById('lista-actividad');
-    // Mostrar últimos hilos donde participó
-    const participaciones = MOCK.hilos.filter(h =>
-        h.autor === u.nombre || h.respuestas.some(r => r.autor === u.nombre)
-    );
-    if (!participaciones.length) { cont.innerHTML='<p class="text-small">Sin actividad registrada.</p>'; return; }
-    participaciones.slice(0,8).forEach(h => {
-        const div = document.createElement('div'); div.className='actividad-item';
-        const sala = MOCK.salas.find(s=>s.id===h.salaId);
-        const icon = document.createElement('span'); icon.textContent='💬'; icon.style.flexShrink='0';
-        const texto = document.createElement('span');
-        const a = document.createElement('a'); a.textContent=truncar(h.titulo,60); a.href=`hilo.html?sala=${h.salaId}&hilo=${h.id}`;
-        const meta = document.createElement('span'); meta.className='text-small'; meta.textContent=` — ${sala?sala.nombre:'?'} · ${formatearFecha(h.fecha)}`;
-        texto.append(a,meta);
-        div.append(icon,texto); cont.appendChild(div);
-    });
+    document.getElementById('f-email').value = u.email || '';
+    document.getElementById('f-bio').value = u.bio || '';
+    document.getElementById('bio-count').textContent = `${(u.bio || '').length} / 300`;
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 function cambiarTab(id, btn) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activa'));
-    document.querySelectorAll('.tab-btn').forEach(b   => b.classList.remove('activa'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activa'));
     document.getElementById(`tab-${id}`).classList.add('activa');
     btn.classList.add('activa');
 }
 
 // ── Avatar emoji ───────────────────────────────────────────────────────────────
 function toggleEmojiPicker() { document.getElementById('emoji-picker').classList.toggle('hidden'); }
-function seleccionarEmoji(emoji) {
+
+async function seleccionarEmoji(emoji) {
     document.getElementById('avatar-preview').textContent = emoji;
     document.getElementById('emoji-picker').classList.add('hidden');
-    if (usuario) usuario.avatar = emoji;
-    mostrarAviso('Avatar actualizado.','success');
+    
+    try {
+        await apiPatch('/perfil', { avatar: emoji });
+        if (usuario) usuario.avatar = emoji;
+        mostrarAviso('Avatar actualizado.', 'success');
+    } catch (error) {
+        if (usuario) usuario.avatar = emoji;
+        mostrarAviso('Avatar actualizado (offline).', 'success');
+    }
 }
 
 // ── Guardar info ────────────────────────────────────────────────────────────────
-function guardarInfo() {
+async function guardarInfo() {
     const nombre = document.getElementById('f-nombre').value.trim();
-    const email  = document.getElementById('f-email').value.trim();
-    const bio    = document.getElementById('f-bio').value.trim();
+    const bio = document.getElementById('f-bio').value.trim();
 
-    if (!nombre) { mostrarAviso('El nombre no puede estar vacío.','error'); return; }
-    if (nombre.length > 30) { mostrarAviso('Nombre demasiado largo (máx 30 caracteres).','error'); return; }
-    if (email && !validarEmail(email)) { mostrarAviso('Formato de email no válido.','error'); return; }
+    if (!nombre) { mostrarAviso('El nombre no puede estar vacío.', 'error'); return; }
+    if (nombre.length > 30) { mostrarAviso('Nombre demasiado largo (máx 30 caracteres).', 'error'); return; }
 
-    if (usuario) { usuario.nombre=nombre; usuario.email=email; usuario.bio=bio; }
-    document.getElementById('nombre-display').textContent = nombre;
-    mostrarAviso('Perfil actualizado correctamente.','success');
-    // TODO: fetch PATCH /api/perfil con { nombre, email, bio }
+    try {
+        await apiPatch('/perfil', { nombre, bio });
+        if (usuario) { usuario.nombre = nombre; usuario.bio = bio; }
+        document.getElementById('nombre-display').textContent = nombre;
+        document.getElementById('titulo-perfil').textContent = `👤 ${nombre}`;
+        mostrarAviso('Perfil actualizado correctamente.', 'success');
+    } catch (error) {
+        mostrarAviso(error.message || 'Error al guardar.', 'error');
+    }
 }
 
 // ── Cambiar contraseña ─────────────────────────────────────────────────────────
 function actualizarBarra() {
     const pass = document.getElementById('pass-nueva').value;
-    const {score} = calcularFortaleza(pass);
-    const bar  = document.getElementById('strength-bar');
+    const { score } = calcularFortaleza(pass);
+    const bar = document.getElementById('strength-bar');
     const hint = document.getElementById('pass-hint');
     const niveles = [
-        {label:'Vacío',        clase:'',      width:'0%'},
-        {label:'Muy Débil 🔴', clase:'weak',  width:'25%'},
-        {label:'Aceptable 🟡', clase:'medium',width:'50%'},
-        {label:'Fuerte 🟢',    clase:'strong',width:'75%'},
-        {label:'Futurista 🌐', clase:'ultra', width:'100%'},
+        { label: 'Vacío', clase: '', width: '0%' },
+        { label: 'Muy Débil 🔴', clase: 'weak', width: '25%' },
+        { label: 'Aceptable 🟡', clase: 'medium', width: '50%' },
+        { label: 'Fuerte 🟢', clase: 'strong', width: '75%' },
+        { label: 'Futurista 🌐', clase: 'ultra', width: '100%' },
     ];
-    const n = pass.length===0? niveles[0]: niveles[score]||niveles[score-1];
-    bar.className=`strength-bar ${n.clase}`; bar.style.width=n.width;
-    hint.textContent=`Nivel: ${n.label}`;
+    const n = pass.length === 0 ? niveles[0] : niveles[score] || niveles[score - 1];
+    bar.className = `strength-bar ${n.clase}`;
+    bar.style.width = n.width;
+    hint.textContent = `Nivel: ${n.label}`;
     verificarCoincidencia();
 }
+
 function verificarCoincidencia() {
-    const p1=document.getElementById('pass-nueva').value, p2=document.getElementById('pass-confirmar').value;
-    const hint=document.getElementById('match-hint');
-    if (!p2) { hint.textContent=''; return; }
-    if (p1===p2) { hint.textContent='✅ Coinciden'; hint.className='input-hint hint-success'; }
-    else          { hint.textContent='❌ No coinciden'; hint.className='input-hint hint-error'; }
+    const p1 = document.getElementById('pass-nueva').value;
+    const p2 = document.getElementById('pass-confirmar').value;
+    const hint = document.getElementById('match-hint');
+    if (!p2) { hint.textContent = ''; return; }
+    if (p1 === p2) { hint.textContent = '✅ Coinciden'; hint.className = 'input-hint hint-success'; }
+    else { hint.textContent = '❌ No coinciden'; hint.className = 'input-hint hint-error'; }
 }
 
-function cambiarPassword() {
-    const actual    = document.getElementById('pass-actual').value;
-    const nueva     = document.getElementById('pass-nueva').value;
+async function cambiarPassword() {
+    const actual = document.getElementById('pass-actual').value;
+    const nueva = document.getElementById('pass-nueva').value;
     const confirmar = document.getElementById('pass-confirmar').value;
 
-    if (!actual) { mostrarAviso('Introduce la contraseña actual.','error'); return; }
-    if (nueva.length < 8) { mostrarAviso('La nueva contraseña debe tener al menos 8 caracteres.','error'); return; }
-    if (nueva !== confirmar) { mostrarAviso('Las contraseñas no coinciden.','error'); return; }
-    if (calcularFortaleza(nueva).score < 2) { mostrarAviso('La contraseña es demasiado débil.','error'); return; }
+    if (!actual) { mostrarAviso('Introduce la contraseña actual.', 'error'); return; }
+    if (nueva.length < 8) { mostrarAviso('La nueva contraseña debe tener al menos 8 caracteres.', 'error'); return; }
+    if (nueva !== confirmar) { mostrarAviso('Las contraseñas no coinciden.', 'error'); return; }
+    if (calcularFortaleza(nueva).score < 2) { mostrarAviso('La contraseña es demasiado débil.', 'error'); return; }
 
-    // TODO: fetch PATCH /api/perfil/password con { actual, nueva }
-    mostrarAviso('Contraseña actualizada correctamente.','success');
-    ['pass-actual','pass-nueva','pass-confirmar'].forEach(id => document.getElementById(id).value='');
+    try {
+        await apiPatch('/perfil/password', { actual, nueva });
+        mostrarAviso('Contraseña actualizada correctamente.', 'success');
+        ['pass-actual', 'pass-nueva', 'pass-confirmar'].forEach(id => document.getElementById(id).value = '');
+        actualizarBarra();
+    } catch (error) {
+        mostrarAviso(error.message || 'Error al cambiar contraseña.', 'error');
+    }
 }
 
 // ── Guardar ajustes ────────────────────────────────────────────────────────────
 function guardarAjustes() {
-    // TODO: fetch PATCH /api/perfil/ajustes
-    mostrarAviso('Ajustes guardados.','success');
+    // En una implementación real, estos se guardarían en el backend
+    mostrarAviso('Ajustes guardados.', 'success');
 }
 
 // ── Borrar cuenta ──────────────────────────────────────────────────────────────
 function confirmarBorrarCuenta() { document.getElementById('modal-borrar').classList.remove('hidden'); }
-function cerrarModalBorrar()     { document.getElementById('modal-borrar').classList.add('hidden'); }
-function ejecutarBorrarCuenta() {
+function cerrarModalBorrar() { document.getElementById('modal-borrar').classList.add('hidden'); }
+
+async function ejecutarBorrarCuenta() {
     const input = document.getElementById('confirmar-nombre').value.trim();
-    if (!usuario || input !== usuario.nombre) { mostrarAviso('El nombre no coincide.','error'); return; }
-    // TODO: fetch DELETE /api/perfil
-    mostrarAviso('Cuenta eliminada. Redirigiendo...','success');
-    setTimeout(() => cerrarSesion(), 2000);
+    if (!usuario || input !== usuario.nombre) {
+        mostrarAviso('El nombre no coincide.', 'error');
+        return;
+    }
+
+    try {
+        await apiDelete('/perfil');
+        mostrarAviso('Cuenta eliminada. Redirigiendo...', 'success');
+        setTimeout(() => cerrarSesion(), 2000);
+    } catch (error) {
+        mostrarAviso(error.message || 'Error al eliminar cuenta.', 'error');
+    }
 }
 </script>
 <script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>

@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
 <script>
-    // Aplicar modo oscuro antes del primer render para evitar flash
     (function(){
         const d = localStorage.getItem('zonachat_dark');
         const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -18,7 +17,6 @@
     <style>
         .hilo-item { cursor:pointer; }
         .hilo-item:hover td { background:#c8d8f8; }
-        .tag-nuevo { background:var(--terra-red); color:#fff; font-size:9px; padding:1px 5px; margin-left:4px; }
         .form-respuesta { background:#f0f4ff; border:1px solid #c0ccee; padding:8px; margin-top:6px; }
         .citar-bloque { background:#ffffee; border-left:3px solid #ccaa00; padding:4px 8px; margin-bottom:6px; font-size:10px; color:#665500; }
         .hilo-stats { font-size:10px; color:var(--text-system); display:flex; gap:12px; flex-wrap:wrap; }
@@ -47,17 +45,13 @@
 </nav>
 
 <main class="container">
-
-    <!-- Breadcrumb -->
     <div style="font-size:11px;padding:4px 0;margin-bottom:4px;color:var(--text-system)">
         <a href="salas.html">Salas</a> &rsaquo;
         <span id="bc-sala">–</span> &rsaquo;
         <span id="bc-hilo" style="color:var(--text-dark)">–</span>
     </div>
 
-    <!-- Panel izquierdo: lista de hilos de la sala -->
     <div style="display:grid;grid-template-columns:280px 1fr;gap:8px;align-items:start">
-
         <div>
             <div class="glass-card">
                 <div class="win-titlebar">
@@ -71,15 +65,12 @@
                     </table>
                 </div>
             </div>
-
-            <!-- Usuarios online en la sala -->
             <div class="glass-card">
                 <div class="win-titlebar"><span>👥 Online ahora</span></div>
                 <div id="lista-online" style="padding:6px 8px;"></div>
             </div>
         </div>
 
-        <!-- Panel derecho: hilo activo -->
         <div>
             <div class="glass-card" id="panel-hilo">
                 <div class="win-titlebar">
@@ -89,8 +80,6 @@
                     <p class="text-small text-center" style="padding:20px 0">Haz clic en un hilo de la lista para verlo.</p>
                 </div>
             </div>
-
-            <!-- Formulario nueva respuesta -->
             <div class="glass-card" id="panel-responder" style="display:none">
                 <div class="win-titlebar"><span id="titulo-responder">✏️ Responder</span></div>
                 <div class="card-body">
@@ -152,12 +141,12 @@
 <script src="shared.js"></script>
 <script>
 'use strict';
-const params    = new URLSearchParams(location.search);
+const params = new URLSearchParams(location.search);
 const salaIdUrl = parseInt(params.get('sala')) || 1;
 const hiloIdUrl = parseInt(params.get('hilo')) || null;
 
-let hiloActivo    = null;
-let citandoId     = null;
+let hiloActivo = null;
+let hilos = [];
 let usuarioActual = null;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -171,88 +160,170 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Sala ──────────────────────────────────────────────────────────────────────
-function cargarSala() {
+async function cargarSala() {
+    try {
+        // Cargar info de la sala
+        const salasRes = await apiFetch('/salas');
+        if (salasRes.ok) {
+            const salasData = await salasRes.json();
+            const sala = salasData.salas.find(s => s.id === salaIdUrl) || salasData.salas[0];
+            if (sala) {
+                document.getElementById('titulo-sala').textContent = `${sala.icono} ${sala.nombre}`;
+                document.getElementById('bc-sala').textContent = sala.nombre;
+                document.title = `ZonaChat.net — ${sala.nombre}`;
+            }
+        }
+
+        // Cargar hilos de la sala
+        const hilosRes = await apiFetch(`/mensajes?sala_id=${salaIdUrl}&limite=50`);
+        if (hilosRes.ok) {
+            const data = await hilosRes.json();
+            hilos = data.mensajes;
+            renderListaHilos();
+            
+            if (hilos.length > 0) {
+                const hiloInicial = hiloIdUrl ? hilos.find(h => h.id === hiloIdUrl) : hilos[0];
+                if (hiloInicial) cargarHilo(hiloInicial.id);
+            }
+        } else {
+            usarDatosMock();
+        }
+    } catch (error) {
+        console.log('Usando datos mock');
+        usarDatosMock();
+    }
+}
+
+function usarDatosMock() {
     const sala = MOCK.salas.find(s => s.id === salaIdUrl) || MOCK.salas[0];
     document.getElementById('titulo-sala').textContent = `${sala.icono} ${sala.nombre}`;
     document.getElementById('bc-sala').textContent = sala.nombre;
-    document.title = `ZonaChat.net — ${sala.nombre}`;
+    
+    hilos = MOCK.hilos.filter(h => h.salaId === sala.id).map(h => ({
+        id: h.id,
+        titulo: h.titulo,
+        autor: h.autor,
+        fecha: h.fecha,
+        respuestas: h.respuestas.length,
+        contenido: h.contenido
+    }));
+    
+    renderListaHilos();
+    if (hilos.length > 0) cargarHiloMock(hilos[0].id);
+}
 
-    const hilosDeSala = MOCK.hilos.filter(h => h.salaId === sala.id);
+function renderListaHilos() {
     const tbody = document.getElementById('lista-hilos');
     tbody.innerHTML = '';
 
-    if (!hilosDeSala.length) {
-        const tr = tbody.insertRow(); const td = tr.insertCell();
-        td.colSpan=2; td.textContent='No hay hilos aún. ¡Crea el primero!';
-        td.style.cssText='padding:12px;text-align:center;color:var(--text-system)';
+    if (!hilos.length) {
+        const tr = tbody.insertRow();
+        const td = tr.insertCell();
+        td.colSpan = 2;
+        td.textContent = 'No hay hilos aún. ¡Crea el primero!';
+        td.style.cssText = 'padding:12px;text-align:center;color:var(--text-system)';
         return;
     }
 
-    hilosDeSala.forEach(hilo => {
-        const tr = tbody.insertRow(); tr.className='hilo-item';
+    hilos.forEach(hilo => {
+        const tr = tbody.insertRow();
+        tr.className = 'hilo-item';
         tr.onclick = () => cargarHilo(hilo.id);
 
         const tdTit = tr.insertCell();
         const span = document.createElement('span');
-        span.textContent = truncar(hilo.titulo, 40);
-        span.style.fontWeight = 'bold'; span.style.color = 'var(--terra-blue-dark)';
+        span.textContent = truncar(hilo.titulo || 'Sin título', 40);
+        span.style.fontWeight = 'bold';
+        span.style.color = 'var(--terra-blue-dark)';
         const autor = document.createElement('div');
         autor.textContent = `@${hilo.autor} · ${formatearFecha(hilo.fecha)}`;
-        autor.style.cssText='font-size:9px;color:var(--text-system)';
-        tdTit.appendChild(span); tdTit.appendChild(autor);
+        autor.style.cssText = 'font-size:9px;color:var(--text-system)';
+        tdTit.appendChild(span);
+        tdTit.appendChild(autor);
 
-        const tdResp = tr.insertCell(); tdResp.textContent = hilo.respuestas.length;
-        tdResp.style.cssText='text-align:center;color:var(--text-system)';
+        const tdResp = tr.insertCell();
+        tdResp.textContent = hilo.respuestas || 0;
+        tdResp.style.cssText = 'text-align:center;color:var(--text-system)';
     });
-
-    // Auto-cargar hilo si viene por URL
-    const hiloInicial = hiloIdUrl
-        ? hilosDeSala.find(h => h.id === hiloIdUrl)
-        : hilosDeSala[0];
-    if (hiloInicial) cargarHilo(hiloInicial.id);
 }
 
 // ── Hilo ──────────────────────────────────────────────────────────────────────
-function cargarHilo(id) {
-    hiloActivo = MOCK.hilos.find(h => h.id === id);
-    if (!hiloActivo) return;
+async function cargarHilo(id) {
+    try {
+        const res = await apiFetch(`/mensajes/${id}`);
+        if (res.ok) {
+            const hilo = await res.json();
+            hiloActivo = hilo;
+            renderHilo(hilo);
+        } else {
+            cargarHiloMock(id);
+        }
+    } catch (error) {
+        cargarHiloMock(id);
+    }
+}
 
-    document.getElementById('titulo-hilo').textContent = truncar(hiloActivo.titulo, 60);
-    document.getElementById('bc-hilo').textContent     = truncar(hiloActivo.titulo, 40);
+function cargarHiloMock(id) {
+    const hilo = MOCK.hilos.find(h => h.id === id);
+    if (!hilo) return;
+    
+    hiloActivo = {
+        id: hilo.id,
+        titulo: hilo.titulo,
+        autor: hilo.autor,
+        autor_rol: 'usuario',
+        fecha: hilo.fecha,
+        contenido: hilo.contenido,
+        votos: 0,
+        respuestas: hilo.respuestas.map(r => ({
+            id: r.id,
+            autor: r.autor,
+            autor_rol: r.moderador ? 'moderador' : 'usuario',
+            fecha: r.fecha,
+            contenido: r.contenido,
+            votos: r.votos
+        }))
+    };
+    renderHilo(hiloActivo);
+}
+
+function renderHilo(hilo) {
+    document.getElementById('titulo-hilo').textContent = truncar(hilo.titulo || 'Sin título', 60);
+    document.getElementById('bc-hilo').textContent = truncar(hilo.titulo || 'Sin título', 40);
 
     const cuerpo = document.getElementById('cuerpo-hilo');
     cuerpo.innerHTML = '';
 
     // Mensaje original
     cuerpo.appendChild(crearTarjetaMensaje({
-        id:      0,
-        autor:   hiloActivo.autor,
-        fecha:   hiloActivo.fecha,
-        contenido: hiloActivo.contenido,
-        votos:   0,
-        esOriginal: true,
+        id: hilo.id,
+        autor: hilo.autor,
+        autor_rol: hilo.autor_rol,
+        fecha: hilo.fecha,
+        contenido: hilo.contenido,
+        votos: hilo.votos || 0,
+        esOriginal: true
     }));
 
     // Stats
     const stats = document.createElement('div');
     stats.className = 'hilo-stats mt-4 mb-8';
-    stats.innerHTML = `
-        <span>👁 ${hiloActivo.vistas.toLocaleString('es-ES')} vistas</span>
-        <span>💬 ${hiloActivo.respuestas.length} respuestas</span>
-    `;
+    stats.innerHTML = `<span>💬 ${hilo.respuestas ? hilo.respuestas.length : 0} respuestas</span>`;
     cuerpo.appendChild(stats);
 
-    // Separador
-    const sep = document.createElement('hr'); sep.className='separator'; cuerpo.appendChild(sep);
+    const sep = document.createElement('hr');
+    sep.className = 'separator';
+    cuerpo.appendChild(sep);
 
     // Respuestas
-    if (hiloActivo.respuestas.length === 0) {
+    if (!hilo.respuestas || hilo.respuestas.length === 0) {
         const p = document.createElement('p');
-        p.className='text-small'; p.style.padding='8px 0';
+        p.className = 'text-small';
+        p.style.padding = '8px 0';
         p.textContent = 'Sé el primero en responder.';
         cuerpo.appendChild(p);
     } else {
-        hiloActivo.respuestas.forEach(r => {
+        hilo.respuestas.forEach(r => {
             cuerpo.appendChild(crearTarjetaMensaje(r));
         });
     }
@@ -260,7 +331,8 @@ function cargarHilo(id) {
     // Botón responder
     if (usuarioActual) {
         const btnResp = document.createElement('button');
-        btnResp.textContent = '✏️ Responder al hilo'; btnResp.className='mt-8';
+        btnResp.textContent = '✏️ Responder al hilo';
+        btnResp.className = 'mt-8';
         btnResp.onclick = () => mostrarFormRespuesta(null);
         cuerpo.appendChild(btnResp);
     }
@@ -271,68 +343,129 @@ function cargarHilo(id) {
 
 function crearTarjetaMensaje(r) {
     const card = document.createElement('div');
-    card.className = `post-card${r.esOriginal? '':' respuesta-anidada'}`;
+    card.className = `post-card${r.esOriginal ? '' : ' respuesta-anidada'}`;
 
-    // Header
-    const header = document.createElement('div'); header.className='post-header';
+    const header = document.createElement('div');
+    header.className = 'post-header';
 
     const av = document.createElement('div');
-    av.className='avatar avatar-sm';
-    av.textContent = (r.autor||'?')[0].toUpperCase();
+    av.className = 'avatar avatar-sm';
+    av.textContent = (r.autor || '?')[0].toUpperCase();
 
-    const nombre = document.createElement('strong'); nombre.textContent = `@${r.autor}`;
-    const fecha  = document.createElement('span');  fecha.className='fecha'; fecha.textContent = formatearFecha(r.fecha);
+    const nombre = document.createElement('strong');
+    nombre.textContent = `@${r.autor}`;
 
-    if (r.moderador) {
-        const badge = document.createElement('span'); badge.className='badge-mod'; badge.textContent='MOD'; header.appendChild(badge);
+    const fecha = document.createElement('span');
+    fecha.className = 'fecha';
+    fecha.textContent = formatearFecha(r.fecha);
+
+    if (r.autor_rol === 'moderador' || r.autor_rol === 'admin') {
+        const badge = document.createElement('span');
+        badge.className = 'badge-mod';
+        badge.textContent = r.autor_rol === 'admin' ? 'ADMIN' : 'MOD';
+        header.appendChild(badge);
     }
     header.append(av, nombre, fecha);
+
     if (r.esOriginal) {
-        const badgeOP = document.createElement('span'); badgeOP.style.cssText='font-size:9px;background:#003399;color:#fff;padding:1px 5px;margin-left:2px'; badgeOP.textContent='OP'; header.appendChild(badgeOP);
+        const badgeOP = document.createElement('span');
+        badgeOP.style.cssText = 'font-size:9px;background:#003399;color:#fff;padding:1px 5px;margin-left:2px';
+        badgeOP.textContent = 'OP';
+        header.appendChild(badgeOP);
     }
 
-    // Contenido
-    const content = document.createElement('div'); content.className='post-content mt-4'; content.textContent=r.contenido;
+    const content = document.createElement('div');
+    content.className = 'post-content mt-4';
+    content.textContent = r.contenido;
 
-    // Acciones
-    const acciones = document.createElement('div'); acciones.className='post-actions';
+    const acciones = document.createElement('div');
+    acciones.className = 'post-actions';
 
-    const btnVotar = document.createElement('button'); btnVotar.className='btn-small';
-    btnVotar.textContent=`▲ ${r.votos||0}`; btnVotar.title='Votar mensaje';
-    btnVotar.onclick = () => { if(!usuarioActual){mostrarAviso('Debes iniciar sesión para votar.','error');return;} r.votos=(r.votos||0)+1; btnVotar.textContent=`▲ ${r.votos}`; mostrarAviso('Voto registrado.','success'); };
+    const btnVotar = document.createElement('button');
+    btnVotar.className = 'btn-small';
+    btnVotar.textContent = `▲ ${r.votos || 0}`;
+    btnVotar.title = 'Votar mensaje';
+    btnVotar.onclick = () => votarMensaje(r.id, btnVotar);
 
-    const btnCitar = document.createElement('button'); btnCitar.className='btn-small';
-    btnCitar.textContent='↩ Citar'; btnCitar.title='Citar este mensaje';
-    btnCitar.onclick = () => { if(!usuarioActual){mostrarAviso('Debes iniciar sesión.','error');return;} mostrarFormRespuesta(r); };
+    const btnCitar = document.createElement('button');
+    btnCitar.className = 'btn-small';
+    btnCitar.textContent = '↩ Citar';
+    btnCitar.title = 'Citar este mensaje';
+    btnCitar.onclick = () => {
+        if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
+        mostrarFormRespuesta(r);
+    };
 
-    const btnReportar = document.createElement('button'); btnReportar.className='btn-small btn-warn';
-    btnReportar.textContent='⚑ Reportar';
-    btnReportar.onclick = () => { if(!usuarioActual){mostrarAviso('Debes iniciar sesión.','error');return;} abrirModalReportar(r.id||0); };
+    const btnReportar = document.createElement('button');
+    btnReportar.className = 'btn-small btn-warn';
+    btnReportar.textContent = '⚑ Reportar';
+    btnReportar.onclick = () => {
+        if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
+        abrirModalReportar(r.id);
+    };
 
     acciones.append(btnVotar, btnCitar, btnReportar);
 
-    // Borrar (solo mod/admin, no en mensaje original)
-    if (!r.esOriginal && usuarioActual && (usuarioActual.rol==='moderador'||usuarioActual.rol==='admin')) {
-        const btnBorrar = document.createElement('button'); btnBorrar.className='btn-small btn-danger';
-        btnBorrar.textContent='🗑 Borrar';
-        btnBorrar.onclick = () => {
-            hiloActivo.respuestas = hiloActivo.respuestas.filter(x => x.id !== r.id);
-            cargarHilo(hiloActivo.id);
-            mostrarAviso('Mensaje eliminado.','success');
-        };
-        acciones.appendChild(btnBorrar);
+    // Borrar (solo mod/admin o autor, no en mensaje original)
+    if (!r.esOriginal && usuarioActual) {
+        const esAutor = r.autor === usuarioActual.nombre;
+        const esMod = usuarioActual.rol === 'moderador' || usuarioActual.rol === 'admin';
+        if (esAutor || esMod) {
+            const btnBorrar = document.createElement('button');
+            btnBorrar.className = 'btn-small btn-danger';
+            btnBorrar.textContent = '🗑 Borrar';
+            btnBorrar.onclick = () => borrarMensaje(r.id);
+            acciones.appendChild(btnBorrar);
+        }
     }
 
     card.append(header, content, acciones);
     return card;
 }
 
+async function votarMensaje(mensajeId, btn) {
+    if (!usuarioActual) {
+        mostrarAviso('Debes iniciar sesión para votar.', 'error');
+        return;
+    }
+    
+    try {
+        const res = await apiFetch(`/mensajes/${mensajeId}/votar`, { method: 'POST' });
+        if (res.ok) {
+            const data = await res.json();
+            btn.textContent = `▲ ${data.votos}`;
+            mostrarAviso('Voto registrado.', 'success');
+        }
+    } catch (error) {
+        mostrarAviso('Error al votar.', 'error');
+    }
+}
+
+async function borrarMensaje(mensajeId) {
+    if (!confirm('¿Estás seguro de que quieres borrar este mensaje?')) return;
+    
+    try {
+        const res = await apiFetch(`/mensajes/${mensajeId}`, { method: 'DELETE' });
+        if (res.ok) {
+            mostrarAviso('Mensaje eliminado.', 'success');
+            if (hiloActivo) cargarHilo(hiloActivo.id);
+        } else {
+            const err = await res.json();
+            mostrarAviso(err.error || 'Error al borrar.', 'error');
+        }
+    } catch (error) {
+        mostrarAviso('Error al borrar.', 'error');
+    }
+}
+
 // ── Formulario respuesta ──────────────────────────────────────────────────────
+let citandoId = null;
+
 function mostrarFormRespuesta(citado) {
     citandoId = citado ? citado.id : null;
-    const panel   = document.getElementById('panel-responder');
+    const panel = document.getElementById('panel-responder');
     const preview = document.getElementById('cita-preview');
-    const textarea= document.getElementById('texto-respuesta');
+    const textarea = document.getElementById('texto-respuesta');
 
     if (citado) {
         preview.classList.remove('hidden');
@@ -363,83 +496,161 @@ function cancelarRespuesta() {
     document.getElementById('cita-preview').classList.add('hidden');
 }
 
-function enviarRespuesta() {
+async function enviarRespuesta() {
     if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
-    if (!hiloActivo)    { mostrarAviso('Selecciona un hilo primero.', 'error'); return; }
+    if (!hiloActivo) { mostrarAviso('Selecciona un hilo primero.', 'error'); return; }
 
-    const ta    = document.getElementById('texto-respuesta');
+    const ta = document.getElementById('texto-respuesta');
     const texto = ta.value.trim();
     if (!texto) { mostrarAviso('El mensaje no puede estar vacío.', 'error'); return; }
     if (texto.length > 2000) { mostrarAviso('El mensaje es demasiado largo.', 'error'); return; }
 
-    const nuevaResp = {
-        id:        Date.now(),
-        autor:     usuarioActual.nombre,
-        fecha:     new Date().toISOString(),
-        contenido: texto,
-        votos:     0,
-        moderador: usuarioActual.rol === 'moderador',
-        citandoId: citandoId,
-    };
+    try {
+        const res = await apiFetch('/mensajes', {
+            method: 'POST',
+            body: JSON.stringify({
+                contenido: texto,
+                padre_id: hiloActivo.id
+            })
+        });
 
-    hiloActivo.respuestas.push(nuevaResp);
-    cargarHilo(hiloActivo.id);
-    document.getElementById('panel-responder').style.display = 'none';
-    mostrarAviso('Respuesta publicada.', 'success');
-    // TODO: fetch POST /api/hilos/:id/respuestas
+        if (res.ok) {
+            mostrarAviso('Respuesta publicada.', 'success');
+            cargarHilo(hiloActivo.id);
+            document.getElementById('panel-responder').style.display = 'none';
+        } else {
+            const err = await res.json();
+            mostrarAviso(err.error || 'Error al publicar.', 'error');
+        }
+    } catch (error) {
+        mostrarAviso('Error al publicar respuesta.', 'error');
+    }
 }
 
 // ── Nuevo hilo ────────────────────────────────────────────────────────────────
-function abrirModalHilo()  { document.getElementById('modal-hilo').classList.remove('hidden'); }
+function abrirModalHilo() { document.getElementById('modal-hilo').classList.remove('hidden'); }
 function cerrarModalHilo() { document.getElementById('modal-hilo').classList.add('hidden'); }
 
-function confirmarNuevoHilo() {
+async function confirmarNuevoHilo() {
     if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
     const titulo = document.getElementById('nh-titulo').value.trim();
     const cuerpo = document.getElementById('nh-cuerpo').value.trim();
     if (!titulo) { mostrarAviso('El título es obligatorio.', 'error'); return; }
     if (!cuerpo) { mostrarAviso('El mensaje inicial es obligatorio.', 'error'); return; }
 
-    const nuevoHilo = {
-        id: Date.now(), salaId: salaIdUrl,
-        titulo, autor: usuarioActual.nombre,
-        fecha: new Date().toISOString(),
-        vistas: 1, contenido: cuerpo, respuestas: [],
-    };
-    MOCK.hilos.push(nuevoHilo);
-    cerrarModalHilo();
-    document.getElementById('nh-titulo').value = '';
-    document.getElementById('nh-cuerpo').value = '';
-    cargarSala();
-    cargarHilo(nuevoHilo.id);
-    mostrarAviso('Hilo creado correctamente.', 'success');
+    try {
+        const res = await apiFetch('/mensajes', {
+            method: 'POST',
+            body: JSON.stringify({
+                titulo,
+                contenido: cuerpo,
+                sala_id: salaIdUrl
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            mostrarAviso('Hilo creado correctamente.', 'success');
+            cerrarModalHilo();
+            document.getElementById('nh-titulo').value = '';
+            document.getElementById('nh-cuerpo').value = '';
+            cargarSala();
+        } else {
+            const err = await res.json();
+            mostrarAviso(err.error || 'Error al crear hilo.', 'error');
+        }
+    } catch (error) {
+        mostrarAviso('Error al crear hilo.', 'error');
+    }
 }
 
 // ── Reporte ────────────────────────────────────────────────────────────────────
 let reportandoMsgId = null;
-function abrirModalReportar(id) { reportandoMsgId=id; document.getElementById('modal-reportar').classList.remove('hidden'); }
-function cerrarModalReportar()  { document.getElementById('modal-reportar').classList.add('hidden'); }
-function confirmarReporte() {
+function abrirModalReportar(id) {
+    reportandoMsgId = id;
+    document.getElementById('modal-reportar').classList.remove('hidden');
+}
+function cerrarModalReportar() { document.getElementById('modal-reportar').classList.add('hidden'); }
+
+async function confirmarReporte() {
     const motivo = document.getElementById('reporte-motivo').value;
-    MOCK.reportes.push({ id: Date.now(), tipo:'mensaje', objetivo:`msg#${reportandoMsgId}`, razon: motivo, estado:'pendiente', fecha: new Date().toISOString() });
-    cerrarModalReportar();
-    mostrarAviso('Reporte enviado. El equipo de moderación lo revisará.', 'success');
+    const comentario = document.getElementById('reporte-comentario').value.trim();
+    
+    try {
+        const res = await apiFetch('/reportes', {
+            method: 'POST',
+            body: JSON.stringify({
+                tipo: 'mensaje',
+                objetivo_id: reportandoMsgId,
+                razon: motivo + (comentario ? `: ${comentario}` : '')
+            })
+        });
+
+        if (res.ok) {
+            cerrarModalReportar();
+            mostrarAviso('Reporte enviado. El equipo de moderación lo revisará.', 'success');
+        } else {
+            mostrarAviso('Error al enviar reporte.', 'error');
+        }
+    } catch (error) {
+        cerrarModalReportar();
+        mostrarAviso('Reporte enviado (modo offline).', 'success');
+    }
 }
 
 // ── Online ─────────────────────────────────────────────────────────────────────
-function cargarOnline() {
+async function cargarOnline() {
     const cont = document.getElementById('lista-online');
-    MOCK.usuarios.filter(u => u.estado==='online').forEach(u => {
-        const div = document.createElement('div');
-        div.style.cssText='display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dotted #ccc;font-size:11px';
-        const dot = document.createElement('span'); dot.className=`dot-${u.estado}`;
-        const av  = document.createElement('div');  av.className='avatar avatar-sm'; av.textContent=u.nombre[0].toUpperCase();
-        const nom = document.createElement('span'); nom.textContent=u.nombre;
-        if (u.rol==='moderador') { const b=document.createElement('span'); b.className='badge-mod'; b.textContent='MOD'; div.append(dot,av,nom,b); }
-        else if (u.rol==='admin') { const b=document.createElement('span'); b.className='badge-admin'; b.textContent='ADMIN'; div.append(dot,av,nom,b); }
-        else div.append(dot,av,nom);
-        cont.appendChild(div);
-    });
+    
+    try {
+        const res = await apiFetch('/usuarios/online');
+        if (res.ok) {
+            const data = await res.json();
+            cont.innerHTML = '';
+            data.usuarios.forEach(u => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dotted #ccc;font-size:11px';
+                const dot = document.createElement('span');
+                dot.className = 'dot-online';
+                const av = document.createElement('div');
+                av.className = 'avatar avatar-sm';
+                av.textContent = u.nombre[0].toUpperCase();
+                const nom = document.createElement('span');
+                nom.textContent = u.nombre;
+                
+                if (u.rol === 'moderador') {
+                    const b = document.createElement('span');
+                    b.className = 'badge-mod';
+                    b.textContent = 'MOD';
+                    div.append(dot, av, nom, b);
+                } else if (u.rol === 'admin') {
+                    const b = document.createElement('span');
+                    b.className = 'badge-admin';
+                    b.textContent = 'ADMIN';
+                    div.append(dot, av, nom, b);
+                } else {
+                    div.append(dot, av, nom);
+                }
+                cont.appendChild(div);
+            });
+        }
+    } catch (error) {
+        // Fallback mock
+        cont.innerHTML = '';
+        MOCK.usuarios.filter(u => u.estado === 'online').forEach(u => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dotted #ccc;font-size:11px';
+            const dot = document.createElement('span');
+            dot.className = 'dot-online';
+            const av = document.createElement('div');
+            av.className = 'avatar avatar-sm';
+            av.textContent = u.nombre[0].toUpperCase();
+            const nom = document.createElement('span');
+            nom.textContent = u.nombre;
+            div.append(dot, av, nom);
+            cont.appendChild(div);
+        });
+    }
 }
 </script>
 <script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>

@@ -1,20 +1,87 @@
-# Secretos — NUNCA al repositorio
-.env
-*.env
+# ══════════════════════════════════════════════════════════════════════════════
+# .gitignore — ZonaChat.net
+# ══════════════════════════════════════════════════════════════════════════════
 
-# Base de datos SQLite
-backend/data/*.db
-backend/data/*.sqlite
-
-# Python
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
-*.pyo
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ── Entorno Virtual ───────────────────────────────────────────────────────────
 venv/
+ENV/
+env/
+.venv/
 
-# Node (si lo usas)
-node_modules/
+# ── Variables de Entorno (SECRET_KEY, etc.) ──────────────────────────────────
+.env
+.env.local
+.env.*.local
 
-# Docker
+# ── Base de Datos SQLite ─────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+backend/data/*.db
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
+logs/
+
+# ── IDE y Editores ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ── Sistema Operativo ────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Cobertura de Tests ───────────────────────────────────────────────────────
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# ── Archivos temporales ──────────────────────────────────────────────────────
+*.tmp
+*.temp
+*.bak
+*.backup

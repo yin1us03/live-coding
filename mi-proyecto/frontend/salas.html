@@ -102,40 +102,83 @@
 <script src="shared.js"></script>
 <script>
 'use strict';
-let filtradas  = [...MOCK.salas];
-let orden      = { campo: 'nombre', asc: true };
-let pagina     = 1;
-const POR_PAG  = 5;
+let salasOriginales = [];
+let filtradas = [];
+let orden = { campo: 'nombre', asc: true };
+let pagina = 1;
+const POR_PAG = 5;
+let usuarioActual = null;
 
 window.addEventListener('DOMContentLoaded', () => {
     iniciarSesionGuardada(u => {
+        usuarioActual = u;
         renderizarNavbar(u);
         if (u.rol === 'moderador' || u.rol === 'admin')
             document.getElementById('btn-crear-sala').style.display = 'inline-block';
     }, () => renderizarNavbar(null));
 
     document.getElementById('buscador-input').addEventListener('keydown', e => { if (e.key === 'Enter') buscar(); });
-    renderTabla();
+    cargarSalas();
 });
+
+async function cargarSalas() {
+    const tbody = document.getElementById('tbody-salas');
+    
+    try {
+        const response = await apiFetch('/salas');
+        if (response.ok) {
+            const data = await response.json();
+            salasOriginales = data.salas.map(s => ({
+                id: s.id,
+                nombre: s.nombre,
+                descripcion: s.descripcion || '',
+                miembros: s.miembros || 0,
+                mensajes: s.mensajes || 0,
+                icono: s.icono || '💬'
+            }));
+        } else {
+            salasOriginales = [...MOCK.salas];
+        }
+    } catch (error) {
+        console.log('Usando datos mock para salas');
+        salasOriginales = [...MOCK.salas];
+    }
+    
+    filtradas = [...salasOriginales];
+    renderTabla();
+}
 
 function buscar() {
     const q = document.getElementById('buscador-input').value.trim().toLowerCase();
-    filtradas = MOCK.salas.filter(s => s.nombre.toLowerCase().includes(q) || s.descripcion.toLowerCase().includes(q));
-    pagina = 1; renderTabla();
+    filtradas = salasOriginales.filter(s => 
+        s.nombre.toLowerCase().includes(q) || 
+        s.descripcion.toLowerCase().includes(q)
+    );
+    pagina = 1;
+    renderTabla();
 }
-function limpiarBusqueda() { document.getElementById('buscador-input').value = ''; filtradas = [...MOCK.salas]; pagina = 1; renderTabla(); }
+
+function limpiarBusqueda() {
+    document.getElementById('buscador-input').value = '';
+    filtradas = [...salasOriginales];
+    pagina = 1;
+    renderTabla();
+}
+
 function filtrar(v) {
-    if (v === 'activas') filtradas = [...MOCK.salas].sort((a,b) => b.mensajes - a.mensajes);
-    else if (v === 'nuevas') filtradas = [...MOCK.salas].sort((a,b) => b.id - a.id);
-    else filtradas = [...MOCK.salas];
-    pagina = 1; renderTabla();
+    if (v === 'activas') filtradas = [...salasOriginales].sort((a,b) => b.mensajes - a.mensajes);
+    else if (v === 'nuevas') filtradas = [...salasOriginales].sort((a,b) => b.id - a.id);
+    else filtradas = [...salasOriginales];
+    pagina = 1;
+    renderTabla();
 }
+
 function ordenarPor(campo) {
     orden = { campo, asc: orden.campo === campo ? !orden.asc : true };
     filtradas.sort((a,b) => {
-        const va = typeof a[campo]==='string'? a[campo].toLowerCase(): a[campo];
-        const vb = typeof b[campo]==='string'? b[campo].toLowerCase(): b[campo];
-        return orden.asc ? (va>vb?1:-1) : (va<vb?1:-1);
+        const va = typeof a[campo] === 'string' ? a[campo].toLowerCase() : a[campo];
+        const vb = typeof b[campo] === 'string' ? b[campo].toLowerCase() : b[campo];
+        return orden.asc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
     });
     renderTabla();
 }
@@ -143,68 +186,131 @@ function ordenarPor(campo) {
 function renderTabla() {
     const tbody = document.getElementById('tbody-salas');
     tbody.innerHTML = '';
-    const inicio = (pagina-1)*POR_PAG;
-    const slice  = filtradas.slice(inicio, inicio+POR_PAG);
+    const inicio = (pagina - 1) * POR_PAG;
+    const slice = filtradas.slice(inicio, inicio + POR_PAG);
 
     if (!slice.length) {
-        const tr = tbody.insertRow(); const td = tr.insertCell();
-        td.colSpan=6; td.textContent='No se encontraron salas.';
-        td.style.cssText='text-align:center;padding:16px;color:var(--text-system)';
+        const tr = tbody.insertRow();
+        const td = tr.insertCell();
+        td.colSpan = 6;
+        td.textContent = 'No se encontraron salas.';
+        td.style.cssText = 'text-align:center;padding:16px;color:var(--text-system)';
     } else {
         slice.forEach(sala => {
             const tr = tbody.insertRow();
+            
             // Icono
-            const tdi = tr.insertCell(); tdi.textContent = sala.icono; tdi.style.cssText='text-align:center;font-size:16px';
+            const tdi = tr.insertCell();
+            tdi.textContent = sala.icono;
+            tdi.style.cssText = 'text-align:center;font-size:16px';
+            
             // Nombre
-            const tdn = tr.insertCell(); const a = document.createElement('a');
-            a.textContent = sala.nombre; a.href = `hilo.html?sala=${sala.id}`; a.style.fontWeight='bold'; tdn.appendChild(a);
-            // Desc
-            const tdd = tr.insertCell(); tdd.textContent = truncar(sala.descripcion, 60); tdd.style.color='var(--text-system)';
+            const tdn = tr.insertCell();
+            const a = document.createElement('a');
+            a.textContent = sala.nombre;
+            a.href = `hilo.html?sala=${sala.id}`;
+            a.style.fontWeight = 'bold';
+            tdn.appendChild(a);
+            
+            // Descripción
+            const tdd = tr.insertCell();
+            tdd.textContent = truncar(sala.descripcion, 60);
+            tdd.style.color = 'var(--text-system)';
+            
             // Miembros
-            const tdm = tr.insertCell(); tdm.textContent = sala.miembros.toLocaleString('es-ES'); tdm.style.textAlign='right';
+            const tdm = tr.insertCell();
+            tdm.textContent = sala.miembros.toLocaleString('es-ES');
+            tdm.style.textAlign = 'right';
+            
             // Mensajes
-            const tdms = tr.insertCell(); tdms.textContent = sala.mensajes.toLocaleString('es-ES'); tdms.style.textAlign='right';
+            const tdms = tr.insertCell();
+            tdms.textContent = sala.mensajes.toLocaleString('es-ES');
+            tdms.style.textAlign = 'right';
+            
             // Acción
             const tda = tr.insertCell();
-            const btn = document.createElement('button'); btn.textContent='Entrar »'; btn.className='btn-small btn-success';
-            btn.onclick = () => location.href=`hilo.html?sala=${sala.id}`; tda.appendChild(btn);
+            const btn = document.createElement('button');
+            btn.textContent = 'Entrar »';
+            btn.className = 'btn-small btn-success';
+            btn.onclick = () => location.href = `hilo.html?sala=${sala.id}`;
+            tda.appendChild(btn);
         });
     }
-    document.getElementById('conteo-salas').textContent = `${filtradas.length} sala${filtradas.length!==1?'s':''}`;
+    
+    document.getElementById('conteo-salas').textContent = `${filtradas.length} sala${filtradas.length !== 1 ? 's' : ''}`;
     renderPaginacion();
 }
 
 function renderPaginacion() {
     const total = Math.ceil(filtradas.length / POR_PAG);
-    const cont  = document.getElementById('paginacion');
-    const info  = document.getElementById('paginacion-info');
+    const cont = document.getElementById('paginacion');
+    const info = document.getElementById('paginacion-info');
     cont.innerHTML = '';
 
-    const prev = document.createElement('button'); prev.textContent='◄'; prev.className='btn-small';
-    prev.disabled = pagina===1; prev.onclick = () => { pagina--; renderTabla(); }; cont.appendChild(prev);
+    const prev = document.createElement('button');
+    prev.textContent = '◄';
+    prev.className = 'btn-small';
+    prev.disabled = pagina === 1;
+    prev.onclick = () => { pagina--; renderTabla(); };
+    cont.appendChild(prev);
 
-    for (let i=1; i<=total; i++) {
-        const b = document.createElement('button'); b.textContent=i; b.className=`btn-small${i===pagina?' activa':''}`;
-        b.onclick = () => { pagina=i; renderTabla(); }; cont.appendChild(b);
+    for (let i = 1; i <= total; i++) {
+        const b = document.createElement('button');
+        b.textContent = i;
+        b.className = `btn-small${i === pagina ? ' activa' : ''}`;
+        b.onclick = () => { pagina = i; renderTabla(); };
+        cont.appendChild(b);
     }
-    const next = document.createElement('button'); next.textContent='►'; next.className='btn-small';
-    next.disabled = pagina===total||total===0; next.onclick = () => { pagina++; renderTabla(); }; cont.appendChild(next);
 
-    const inicio = (pagina-1)*POR_PAG+1, fin = Math.min(pagina*POR_PAG, filtradas.length);
-    info.textContent = filtradas.length>0 ? `Mostrando ${inicio}–${fin} de ${filtradas.length}` : '';
+    const next = document.createElement('button');
+    next.textContent = '►';
+    next.className = 'btn-small';
+    next.disabled = pagina === total || total === 0;
+    next.onclick = () => { pagina++; renderTabla(); };
+    cont.appendChild(next);
+
+    const inicio = (pagina - 1) * POR_PAG + 1;
+    const fin = Math.min(pagina * POR_PAG, filtradas.length);
+    info.textContent = filtradas.length > 0 ? `Mostrando ${inicio}–${fin} de ${filtradas.length}` : '';
 }
 
-function abrirModal()  { document.getElementById('modal-sala').classList.remove('hidden'); }
+function abrirModal() { document.getElementById('modal-sala').classList.remove('hidden'); }
 function cerrarModal() { document.getElementById('modal-sala').classList.add('hidden'); }
-function confirmarCrear() {
+
+async function confirmarCrear() {
     const nombre = document.getElementById('ms-nombre').value.trim();
-    const desc   = document.getElementById('ms-desc').value.trim();
-    const icono  = document.getElementById('ms-icono').value.trim() || '💬';
+    const desc = document.getElementById('ms-desc').value.trim();
+    const icono = document.getElementById('ms-icono').value.trim() || '💬';
+    
     if (!nombre) { mostrarAviso('El nombre es obligatorio.', 'error'); return; }
-    MOCK.salas.push({ id: MOCK.salas.length+1, nombre, descripcion: desc, miembros: 1, mensajes: 0, icono });
-    filtradas = [...MOCK.salas]; renderTabla();
-    mostrarAviso(`Sala "${nombre}" creada.`, 'success'); cerrarModal();
-    ['ms-nombre','ms-desc','ms-icono'].forEach(id => document.getElementById(id).value='');
+
+    try {
+        const response = await apiFetch('/salas', {
+            method: 'POST',
+            body: JSON.stringify({ nombre, descripcion: desc, icono })
+        });
+        
+        if (response.ok) {
+            mostrarAviso(`Sala "${nombre}" creada.`, 'success');
+            cerrarModal();
+            cargarSalas();
+            ['ms-nombre', 'ms-desc', 'ms-icono'].forEach(id => document.getElementById(id).value = '');
+        } else {
+            const error = await response.json();
+            mostrarAviso(error.error || 'Error al crear sala.', 'error');
+        }
+    } catch (error) {
+        // Fallback mock
+        salasOriginales.push({
+            id: salasOriginales.length + 1,
+            nombre, descripcion: desc, miembros: 1, mensajes: 0, icono
+        });
+        filtradas = [...salasOriginales];
+        renderTabla();
+        mostrarAviso(`Sala "${nombre}" creada (modo offline).`, 'success');
+        cerrarModal();
+        ['ms-nombre', 'ms-desc', 'ms-icono'].forEach(id => document.getElementById(id).value = '');
+    }
 }
 </script>
 <script>document.addEventListener("DOMContentLoaded", inicializarModoOscuro);</script>
