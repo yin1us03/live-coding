@@ -10,27 +10,11 @@
 </script>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZonaChat.net — Perfil</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' http://localhost:3000; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="style.css">
-    <style>
-        .perfil-grid { display:grid; grid-template-columns:220px 1fr; gap:8px; align-items:start; }
-        .stat-fila   { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dotted #ccc; font-size:11px; }
-        .stat-fila:last-child { border-bottom:none; }
-        .stat-valor  { font-weight:bold; color:var(--terra-blue-dark); }
-        .tab-bar     { display:flex; border-bottom:2px solid var(--win-bd); margin-bottom:0; }
-        .tab-btn     { padding:4px 14px; font-size:11px; font-weight:bold; cursor:pointer; background:var(--win-gray); border:1px solid var(--win-bd); border-bottom:none; margin-right:2px; color:var(--text-dark); }
-        .tab-btn.activa { background:var(--win-white); border-bottom:2px solid var(--win-white); margin-bottom:-2px; color:var(--terra-blue-dark); }
-        .tab-panel   { display:none; background:var(--win-white); border:1px solid var(--win-bd); border-top:none; padding:10px; }
-        .tab-panel.activa { display:block; }
-        #avatar-preview { font-size:36px; width:80px; height:80px; line-height:80px; text-align:center; border:2px solid var(--win-bd); background:var(--win-gray); cursor:pointer; user-select:none; display:block; }
-        .emoji-picker { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; max-width:220px; }
-        .emoji-picker span { font-size:22px; cursor:pointer; padding:3px; border:1px solid transparent; border-radius:2px; }
-        .emoji-picker span:hover { border-color:var(--terra-blue-mid); background:#eef; }
-        .actividad-item { font-size:11px; padding:4px 0; border-bottom:1px dotted #ddd; display:flex; gap:8px; align-items:baseline; }
-        .actividad-item:last-child { border-bottom:none; }
-    </style>
 </head>
 <body>
 <div id="zonachat-toast-container"></div>
@@ -42,7 +26,7 @@
     </div>
     <div id="auth-controls">
         <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
-        <button id="nav-perfil-btn" onclick="location.href='perfil.html'"></button>
+        <button id="nav-perfil-btn" onclick="location.href='perfil.html'" style="display:none"></button>
         <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
         <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
     </div>
@@ -53,96 +37,93 @@
 </nav>
 
 <main class="container">
-    <div class="perfil-grid">
-        <div>
-            <div class="glass-card">
-                <div class="win-titlebar"><span id="titulo-perfil">👤 Mi Perfil</span></div>
-                <div class="card-body" style="text-align:center;">
-                    <div id="avatar-preview" onclick="toggleEmojiPicker()" title="Cambiar avatar">👤</div>
-                    <div id="emoji-picker" class="emoji-picker hidden" style="justify-content:center">
-                        <span onclick="seleccionarEmoji('😀')">😀</span><span onclick="seleccionarEmoji('🤖')">🤖</span>
-                        <span onclick="seleccionarEmoji('🦊')">🦊</span><span onclick="seleccionarEmoji('🐱')">🐱</span>
-                        <span onclick="seleccionarEmoji('🦁')">🦁</span><span onclick="seleccionarEmoji('🎭')">🎭</span>
-                        <span onclick="seleccionarEmoji('🧑‍💻')">🧑‍💻</span><span onclick="seleccionarEmoji('🦸')">🦸</span>
-                        <span onclick="seleccionarEmoji('👾')">👾</span><span onclick="seleccionarEmoji('🌙')">🌙</span>
-                        <span onclick="seleccionarEmoji('⚡')">⚡</span><span onclick="seleccionarEmoji('🔥')">🔥</span>
-                    </div>
-                    <div style="margin-top:8px">
-                        <strong id="nombre-display" style="font-size:13px;color:var(--terra-blue-dark)"></strong>
-                        <div id="rol-badge" style="margin-top:3px"></div>
-                        <div id="estado-display" style="margin-top:4px;font-size:10px;color:var(--text-system)"></div>
-                    </div>
+    <div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+        <div class="win-titlebar"><span id="titulo-perfil">👤 Mi Perfil</span></div>
+        <div class="card-body">
+            <!-- Avatar y datos básicos -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div id="avatar-preview" onclick="toggleEmojiPicker()" title="Click para cambiar avatar" style="font-size: 48px; width: 80px; height: 80px; line-height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 20px rgba(0, 255, 255, 0.4); margin-bottom: 10px;">👤</div>
+                <div id="emoji-picker" class="hidden" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <span onclick="seleccionarEmoji('😀')" style="font-size: 24px; cursor: pointer; padding: 5px;">😀</span>
+                    <span onclick="seleccionarEmoji('🤖')" style="font-size: 24px; cursor: pointer; padding: 5px;">🤖</span>
+                    <span onclick="seleccionarEmoji('🦊')" style="font-size: 24px; cursor: pointer; padding: 5px;">🦊</span>
+                    <span onclick="seleccionarEmoji('🐱')" style="font-size: 24px; cursor: pointer; padding: 5px;">🐱</span>
+                    <span onclick="seleccionarEmoji('🦁')" style="font-size: 24px; cursor: pointer; padding: 5px;">🦁</span>
+                    <span onclick="seleccionarEmoji('🎭')" style="font-size: 24px; cursor: pointer; padding: 5px;">🎭</span>
+                    <span onclick="seleccionarEmoji('🧑‍💻')" style="font-size: 24px; cursor: pointer; padding: 5px;">🧑‍💻</span>
+                    <span onclick="seleccionarEmoji('🦸')" style="font-size: 24px; cursor: pointer; padding: 5px;">🦸</span>
+                    <span onclick="seleccionarEmoji('👾')" style="font-size: 24px; cursor: pointer; padding: 5px;">👾</span>
+                    <span onclick="seleccionarEmoji('🌙')" style="font-size: 24px; cursor: pointer; padding: 5px;">🌙</span>
+                    <span onclick="seleccionarEmoji('⚡')" style="font-size: 24px; cursor: pointer; padding: 5px;">⚡</span>
+                    <span onclick="seleccionarEmoji('🔥')" style="font-size: 24px; cursor: pointer; padding: 5px;">🔥</span>
                 </div>
-                <hr class="separator" style="margin:0">
-                <div class="card-body">
-                    <div class="stat-fila"><span>Mensajes</span><span id="stat-mensajes" class="stat-valor">–</span></div>
-                    <div class="stat-fila"><span>Miembro desde</span><span id="stat-desde" class="stat-valor">–</span></div>
-                    <div class="stat-fila"><span>Rol</span><span id="stat-rol" class="stat-valor">–</span></div>
-                    <div class="stat-fila"><span>Estado</span><span id="stat-estado" class="stat-valor">–</span></div>
+                <h3 id="nombre-display" style="margin: 10px 0 5px; color: var(--neon-cyan);"></h3>
+                <div id="rol-badge" style="margin-top: 5px;"></div>
+                <p id="email-display" style="color: var(--text-dim); font-size: 12px; margin-top: 5px;"></p>
+            </div>
+
+            <!-- Estadísticas -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center;">
+                <div style="padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(0,255,255,0.2);">
+                    <div id="stat-mensajes" style="font-size: 20px; font-weight: bold; color: var(--neon-cyan);">0</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Mensajes</div>
+                </div>
+                <div style="padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(0,255,255,0.2);">
+                    <div id="stat-rol" style="font-size: 14px; font-weight: bold; color: var(--neon-green);">Usuario</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Rol</div>
+                </div>
+                <div style="padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(0,255,255,0.2);">
+                    <div id="stat-desde" style="font-size: 12px; font-weight: bold; color: var(--neon-magenta);">-</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Miembro desde</div>
                 </div>
             </div>
-        </div>
 
-        <div>
-            <div class="glass-card">
-                <div class="win-titlebar"><span>⚙️ Configuración del Perfil</span></div>
-                <div style="padding:8px 8px 0;">
-                    <div class="tab-bar">
-                        <button class="tab-btn activa" onclick="cambiarTab('info',this)">Información</button>
-                        <button class="tab-btn" onclick="cambiarTab('seguridad',this)">Seguridad</button>
-                        <button class="tab-btn" onclick="cambiarTab('ajustes',this)">Ajustes</button>
-                        <button class="tab-btn" onclick="cambiarTab('actividad',this)">Actividad</button>
-                    </div>
-                </div>
+            <hr class="separator">
 
-                <div id="tab-info" class="tab-panel activa" style="margin:0 8px 8px">
-                    <div class="input-group"><label>Nombre de usuario</label><input type="text" id="f-nombre" maxlength="30" placeholder="Tu nick..."></div>
-                    <div class="input-group"><label>Email</label><input type="email" id="f-email" placeholder="tu@email.com"><span class="input-hint">El email no es visible para otros usuarios.</span></div>
-                    <div class="input-group"><label>Biografía</label><textarea id="f-bio" maxlength="300" rows="4" placeholder="Cuéntanos algo sobre ti..."></textarea><span class="input-hint" id="bio-count">0 / 300</span></div>
-                    <button onclick="guardarInfo()">💾 Guardar cambios</button>
+            <!-- Formulario de edición -->
+            <form id="form-perfil" onsubmit="guardarPerfil(event)">
+                <div class="input-group">
+                    <label for="f-nombre">Nombre de usuario</label>
+                    <input type="text" id="f-nombre" maxlength="30" placeholder="Tu nick...">
                 </div>
+                <div class="input-group">
+                    <label for="f-bio">Biografía</label>
+                    <textarea id="f-bio" maxlength="300" rows="3" placeholder="Cuéntanos algo sobre ti..."></textarea>
+                    <span id="bio-count" class="input-hint">0 / 300</span>
+                </div>
+                <button type="submit" class="btn-primary">💾 Guardar cambios</button>
+            </form>
 
-                <div id="tab-seguridad" class="tab-panel" style="margin:0 8px 8px">
-                    <p class="text-small mb-8" style="padding:4px 0">Para cambiar la contraseña introduce la actual y la nueva dos veces.</p>
-                    <div class="input-group"><label>Contraseña actual</label><input type="password" id="pass-actual" autocomplete="current-password" placeholder="••••••••"></div>
-                    <div class="input-group">
-                        <label>Nueva contraseña</label>
-                        <input type="password" id="pass-nueva" autocomplete="new-password" placeholder="Mínimo 8 caracteres" oninput="actualizarBarra()">
-                        <div class="strength-meter-container"><div id="strength-bar" class="strength-bar"></div></div>
-                        <span id="pass-hint" class="input-hint">Nivel: Vacío</span>
-                    </div>
-                    <div class="input-group"><label>Confirmar nueva contraseña</label><input type="password" id="pass-confirmar" autocomplete="new-password" placeholder="Repite la contraseña" oninput="verificarCoincidencia()"><span id="match-hint" class="input-hint"></span></div>
-                    <button onclick="cambiarPassword()">🔐 Cambiar contraseña</button>
-                    <hr class="separator">
-                    <p class="text-small mb-8" style="color:var(--terra-red);font-weight:bold">⚠️ Zona de peligro</p>
-                    <button class="btn-danger" onclick="confirmarBorrarCuenta()">🗑 Eliminar mi cuenta</button>
-                </div>
+            <hr class="separator">
 
-                <div id="tab-ajustes" class="tab-panel" style="margin:0 8px 8px">
-                    <p class="text-small mb-8">Preferencias de notificaciones y privacidad.</p>
-                    <div class="input-group">
-                        <label><input type="checkbox" id="aj-notif-resp" checked> Notificarme cuando alguien responda a mis hilos</label>
-                    </div>
-                    <div class="input-group">
-                        <label><input type="checkbox" id="aj-notif-cita"> Notificarme cuando me citen</label>
-                    </div>
-                    <div class="input-group">
-                        <label><input type="checkbox" id="aj-perfil-publico" checked> Perfil visible para otros usuarios</label>
-                    </div>
-                    <div class="input-group">
-                        <label><input type="checkbox" id="aj-mostrar-email"> Mostrar email en el perfil público</label>
-                    </div>
-                    <div class="input-group">
-                        <label>Idioma de la interfaz</label>
-                        <select id="aj-idioma"><option value="es">Español</option><option value="en">English</option></select>
-                    </div>
-                    <button onclick="guardarAjustes()">💾 Guardar ajustes</button>
+            <!-- Cambiar contraseña -->
+            <h4 style="margin-bottom: 10px; color: var(--neon-cyan);">🔐 Cambiar contraseña</h4>
+            <form id="form-password" onsubmit="cambiarPassword(event)">
+                <div class="input-group">
+                    <label for="pass-actual">Contraseña actual</label>
+                    <input type="password" id="pass-actual" autocomplete="current-password" placeholder="••••••••">
                 </div>
+                <div class="input-group">
+                    <label for="pass-nueva">Nueva contraseña</label>
+                    <input type="password" id="pass-nueva" autocomplete="new-password" placeholder="Mínimo 8 caracteres" oninput="actualizarBarra()">
+                    <div class="strength-meter-container"><div id="strength-bar" class="strength-bar"></div></div>
+                    <span id="pass-hint" class="input-hint">Nivel: Vacío</span>
+                </div>
+                <div class="input-group">
+                    <label for="pass-confirmar">Confirmar nueva contraseña</label>
+                    <input type="password" id="pass-confirmar" autocomplete="new-password" placeholder="Repite la contraseña" oninput="verificarCoincidencia()">
+                    <span id="match-hint" class="input-hint"></span>
+                </div>
+                <button type="submit">🔐 Cambiar contraseña</button>
+            </form>
 
-                <div id="tab-actividad" class="tab-panel" style="margin:0 8px 8px">
-                    <p class="text-small mb-8">Últimas participaciones del usuario.</p>
-                    <div id="lista-actividad"></div>
-                </div>
+            <hr class="separator">
+
+            <!-- Zona de peligro -->
+            <div style="background: rgba(255,0,100,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,0,100,0.3);">
+                <h4 style="color: var(--neon-pink); margin-bottom: 10px;">⚠️ Zona de peligro</h4>
+                <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">Esta acción es irreversible. Tu cuenta y todos tus datos serán eliminados.</p>
+                <button class="btn-danger" onclick="confirmarBorrarCuenta()">🗑 Eliminar mi cuenta</button>
             </div>
         </div>
     </div>
@@ -153,9 +134,11 @@
     <div class="glass-card modal-content">
         <div class="win-titlebar"><span>⚠️ Confirmar eliminación</span></div>
         <div class="card-body">
-            <p style="margin-bottom:10px">Esta acción es <strong>irreversible</strong>. Tu cuenta y todos tus mensajes serán eliminados permanentemente.</p>
-            <p class="text-small mb-8">Escribe tu nombre de usuario para confirmar:</p>
-            <div class="input-group"><input type="text" id="confirmar-nombre" placeholder="Tu nombre de usuario"></div>
+            <p style="margin-bottom: 10px">Esta acción es <strong style="color: var(--neon-pink);">irreversible</strong>.</p>
+            <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">Escribe tu nombre de usuario para confirmar:</p>
+            <div class="input-group">
+                <input type="text" id="confirmar-nombre" placeholder="Tu nombre de usuario">
+            </div>
             <div class="modal-buttons">
                 <button class="btn-danger" onclick="ejecutarBorrarCuenta()">Eliminar definitivamente</button>
                 <button onclick="cerrarModalBorrar()">Cancelar</button>
@@ -167,11 +150,12 @@
 <script src="shared.js"></script>
 <script>
 'use strict';
-let usuario = null;
+let usuarioActual = null;
 
 window.addEventListener('DOMContentLoaded', () => {
+    // Verificar sesión
     iniciarSesionGuardada(u => {
-        usuario = u;
+        usuarioActual = u;
         renderizarNavbar(u);
         cargarPerfil(u);
     }, () => {
@@ -180,84 +164,112 @@ window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => location.href = 'index.html', 2000);
     });
 
+    // Contador de bio
     const bio = document.getElementById('f-bio');
-    if (bio) bio.addEventListener('input', () => {
-        document.getElementById('bio-count').textContent = `${bio.value.length} / 300`;
-    });
+    if (bio) {
+        bio.addEventListener('input', () => {
+            document.getElementById('bio-count').textContent = `${bio.value.length} / 300`;
+        });
+    }
 });
 
 function cargarPerfil(u) {
-    document.getElementById('avatar-preview').textContent = u.avatar || u.nombre[0].toUpperCase();
-    document.getElementById('nombre-display').textContent = u.nombre;
-    document.getElementById('estado-display').textContent = `● ${u.estado || 'online'}`;
-    document.getElementById('stat-mensajes').textContent = (u.mensajes_total || 0).toLocaleString('es-ES');
-    document.getElementById('stat-desde').textContent = formatearFecha(u.fecha_registro);
-    document.getElementById('stat-rol').textContent = u.rol.charAt(0).toUpperCase() + u.rol.slice(1);
-    document.getElementById('stat-estado').textContent = 'Online';
-    document.getElementById('titulo-perfil').textContent = `👤 ${u.nombre}`;
+    if (!u) return;
 
+    // Avatar
+    const avatar = u.avatar || u.nombre ? u.nombre[0].toUpperCase() : '👤';
+    document.getElementById('avatar-preview').textContent = avatar;
+
+    // Nombre y email
+    document.getElementById('nombre-display').textContent = u.nombre || 'Usuario';
+    document.getElementById('email-display').textContent = u.email || '';
+    document.getElementById('titulo-perfil').textContent = `👤 ${u.nombre || 'Mi Perfil'}`;
+
+    // Estadísticas
+    document.getElementById('stat-mensajes').textContent = (u.mensajes_total || 0).toLocaleString('es-ES');
+    document.getElementById('stat-rol').textContent = (u.rol || 'usuario').charAt(0).toUpperCase() + (u.rol || 'usuario').slice(1);
+    document.getElementById('stat-desde').textContent = formatearFecha(u.fecha_registro) || 'Reciente';
+
+    // Badge de rol
     const rolBadge = document.getElementById('rol-badge');
     rolBadge.innerHTML = '';
     if (u.rol === 'moderador') {
-        const b = document.createElement('span');
-        b.className = 'badge-mod';
-        b.textContent = 'MODERADOR';
-        rolBadge.appendChild(b);
+        rolBadge.innerHTML = '<span class="badge-mod">MODERADOR</span>';
     } else if (u.rol === 'admin') {
-        const b = document.createElement('span');
-        b.className = 'badge-admin';
-        b.textContent = 'ADMIN';
-        rolBadge.appendChild(b);
+        rolBadge.innerHTML = '<span class="badge-admin">ADMIN</span>';
     }
 
-    // Rellenar formulario
-    document.getElementById('f-nombre').value = u.nombre;
-    document.getElementById('f-email').value = u.email || '';
+    // Formulario
+    document.getElementById('f-nombre').value = u.nombre || '';
     document.getElementById('f-bio').value = u.bio || '';
     document.getElementById('bio-count').textContent = `${(u.bio || '').length} / 300`;
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────────────────
-function cambiarTab(id, btn) {
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activa'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activa'));
-    document.getElementById(`tab-${id}`).classList.add('activa');
-    btn.classList.add('activa');
+// ── Avatar ─────────────────────────────────────────────────────────────────────
+function toggleEmojiPicker() {
+    document.getElementById('emoji-picker').classList.toggle('hidden');
 }
-
-// ── Avatar emoji ───────────────────────────────────────────────────────────────
-function toggleEmojiPicker() { document.getElementById('emoji-picker').classList.toggle('hidden'); }
 
 async function seleccionarEmoji(emoji) {
     document.getElementById('avatar-preview').textContent = emoji;
     document.getElementById('emoji-picker').classList.add('hidden');
-    
+
     try {
-        await apiPatch('/perfil', { avatar: emoji });
-        if (usuario) usuario.avatar = emoji;
-        mostrarAviso('Avatar actualizado.', 'success');
+        const res = await apiFetch('/perfil', {
+            method: 'PATCH',
+            body: JSON.stringify({ avatar: emoji })
+        });
+
+        if (res.ok) {
+            if (usuarioActual) usuarioActual.avatar = emoji;
+            mostrarAviso('Avatar actualizado.', 'success');
+        } else {
+            const data = await res.json();
+            mostrarAviso(data.error || 'Error al actualizar avatar.', 'error');
+        }
     } catch (error) {
-        if (usuario) usuario.avatar = emoji;
+        if (usuarioActual) usuarioActual.avatar = emoji;
         mostrarAviso('Avatar actualizado (offline).', 'success');
     }
 }
 
-// ── Guardar info ────────────────────────────────────────────────────────────────
-async function guardarInfo() {
+// ── Guardar perfil ─────────────────────────────────────────────────────────────
+async function guardarPerfil(e) {
+    e.preventDefault();
+
     const nombre = document.getElementById('f-nombre').value.trim();
     const bio = document.getElementById('f-bio').value.trim();
 
-    if (!nombre) { mostrarAviso('El nombre no puede estar vacío.', 'error'); return; }
-    if (nombre.length > 30) { mostrarAviso('Nombre demasiado largo (máx 30 caracteres).', 'error'); return; }
+    if (!nombre) {
+        mostrarAviso('El nombre no puede estar vacío.', 'error');
+        return;
+    }
+
+    if (nombre.length > 30) {
+        mostrarAviso('Nombre demasiado largo (máx 30 caracteres).', 'error');
+        return;
+    }
 
     try {
-        await apiPatch('/perfil', { nombre, bio });
-        if (usuario) { usuario.nombre = nombre; usuario.bio = bio; }
-        document.getElementById('nombre-display').textContent = nombre;
-        document.getElementById('titulo-perfil').textContent = `👤 ${nombre}`;
-        mostrarAviso('Perfil actualizado correctamente.', 'success');
+        const res = await apiFetch('/perfil', {
+            method: 'PATCH',
+            body: JSON.stringify({ nombre, bio })
+        });
+
+        if (res.ok) {
+            if (usuarioActual) {
+                usuarioActual.nombre = nombre;
+                usuarioActual.bio = bio;
+            }
+            document.getElementById('nombre-display').textContent = nombre;
+            document.getElementById('titulo-perfil').textContent = `👤 ${nombre}`;
+            mostrarAviso('Perfil actualizado correctamente.', 'success');
+        } else {
+            const data = await res.json();
+            mostrarAviso(data.error || 'Error al guardar.', 'error');
+        }
     } catch (error) {
-        mostrarAviso(error.message || 'Error al guardar.', 'error');
+        mostrarAviso('Error de conexión.', 'error');
     }
 }
 
@@ -267,13 +279,15 @@ function actualizarBarra() {
     const { score } = calcularFortaleza(pass);
     const bar = document.getElementById('strength-bar');
     const hint = document.getElementById('pass-hint');
+
     const niveles = [
         { label: 'Vacío', clase: '', width: '0%' },
-        { label: 'Muy Débil 🔴', clase: 'weak', width: '25%' },
-        { label: 'Aceptable 🟡', clase: 'medium', width: '50%' },
-        { label: 'Fuerte 🟢', clase: 'strong', width: '75%' },
-        { label: 'Futurista 🌐', clase: 'ultra', width: '100%' },
+        { label: 'Muy Débil', clase: 'weak', width: '25%' },
+        { label: 'Aceptable', clase: 'medium', width: '50%' },
+        { label: 'Fuerte', clase: 'strong', width: '75%' },
+        { label: 'Futurista', clase: 'ultra', width: '100%' },
     ];
+
     const n = pass.length === 0 ? niveles[0] : niveles[score] || niveles[score - 1];
     bar.className = `strength-bar ${n.clase}`;
     bar.style.width = n.width;
@@ -285,54 +299,100 @@ function verificarCoincidencia() {
     const p1 = document.getElementById('pass-nueva').value;
     const p2 = document.getElementById('pass-confirmar').value;
     const hint = document.getElementById('match-hint');
-    if (!p2) { hint.textContent = ''; return; }
-    if (p1 === p2) { hint.textContent = '✅ Coinciden'; hint.className = 'input-hint hint-success'; }
-    else { hint.textContent = '❌ No coinciden'; hint.className = 'input-hint hint-error'; }
+
+    if (!p2) {
+        hint.textContent = '';
+        return;
+    }
+
+    if (p1 === p2) {
+        hint.textContent = '✅ Coinciden';
+        hint.className = 'input-hint hint-success';
+    } else {
+        hint.textContent = '❌ No coinciden';
+        hint.className = 'input-hint hint-error';
+    }
 }
 
-async function cambiarPassword() {
+async function cambiarPassword(e) {
+    e.preventDefault();
+
     const actual = document.getElementById('pass-actual').value;
     const nueva = document.getElementById('pass-nueva').value;
     const confirmar = document.getElementById('pass-confirmar').value;
 
-    if (!actual) { mostrarAviso('Introduce la contraseña actual.', 'error'); return; }
-    if (nueva.length < 8) { mostrarAviso('La nueva contraseña debe tener al menos 8 caracteres.', 'error'); return; }
-    if (nueva !== confirmar) { mostrarAviso('Las contraseñas no coinciden.', 'error'); return; }
-    if (calcularFortaleza(nueva).score < 2) { mostrarAviso('La contraseña es demasiado débil.', 'error'); return; }
+    if (!actual) {
+        mostrarAviso('Introduce la contraseña actual.', 'error');
+        return;
+    }
+
+    if (nueva.length < 8) {
+        mostrarAviso('La nueva contraseña debe tener al menos 8 caracteres.', 'error');
+        return;
+    }
+
+    if (nueva !== confirmar) {
+        mostrarAviso('Las contraseñas no coinciden.', 'error');
+        return;
+    }
+
+    if (calcularFortaleza(nueva).score < 2) {
+        mostrarAviso('La contraseña es demasiado débil.', 'error');
+        return;
+    }
 
     try {
-        await apiPatch('/perfil/password', { actual, nueva });
-        mostrarAviso('Contraseña actualizada correctamente.', 'success');
-        ['pass-actual', 'pass-nueva', 'pass-confirmar'].forEach(id => document.getElementById(id).value = '');
-        actualizarBarra();
+        const res = await apiFetch('/perfil/password', {
+            method: 'PATCH',
+            body: JSON.stringify({ actual, nueva })
+        });
+
+        if (res.ok) {
+            mostrarAviso('Contraseña actualizada correctamente.', 'success');
+            document.getElementById('pass-actual').value = '';
+            document.getElementById('pass-nueva').value = '';
+            document.getElementById('pass-confirmar').value = '';
+            actualizarBarra();
+        } else {
+            const data = await res.json();
+            mostrarAviso(data.error || 'Error al cambiar contraseña.', 'error');
+        }
     } catch (error) {
-        mostrarAviso(error.message || 'Error al cambiar contraseña.', 'error');
+        mostrarAviso('Error de conexión.', 'error');
     }
 }
 
-// ── Guardar ajustes ────────────────────────────────────────────────────────────
-function guardarAjustes() {
-    // En una implementación real, estos se guardarían en el backend
-    mostrarAviso('Ajustes guardados.', 'success');
+// ── Borrar cuenta ──────────────────────────────────────────────────────────────
+function confirmarBorrarCuenta() {
+    document.getElementById('modal-borrar').classList.remove('hidden');
 }
 
-// ── Borrar cuenta ──────────────────────────────────────────────────────────────
-function confirmarBorrarCuenta() { document.getElementById('modal-borrar').classList.remove('hidden'); }
-function cerrarModalBorrar() { document.getElementById('modal-borrar').classList.add('hidden'); }
+function cerrarModalBorrar() {
+    document.getElementById('modal-borrar').classList.add('hidden');
+}
 
 async function ejecutarBorrarCuenta() {
     const input = document.getElementById('confirmar-nombre').value.trim();
-    if (!usuario || input !== usuario.nombre) {
+
+    if (!usuarioActual || input !== usuarioActual.nombre) {
         mostrarAviso('El nombre no coincide.', 'error');
         return;
     }
 
     try {
-        await apiDelete('/perfil');
-        mostrarAviso('Cuenta eliminada. Redirigiendo...', 'success');
-        setTimeout(() => cerrarSesion(), 2000);
+        const res = await apiFetch('/perfil', {
+            method: 'DELETE'
+        });
+
+        if (res.ok) {
+            mostrarAviso('Cuenta eliminada. Redirigiendo...', 'success');
+            setTimeout(() => cerrarSesion(), 2000);
+        } else {
+            const data = await res.json();
+            mostrarAviso(data.error || 'Error al eliminar cuenta.', 'error');
+        }
     } catch (error) {
-        mostrarAviso(error.message || 'Error al eliminar cuenta.', 'error');
+        mostrarAviso('Error de conexión.', 'error');
     }
 }
 </script>

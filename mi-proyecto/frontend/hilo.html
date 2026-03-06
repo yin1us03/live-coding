@@ -10,18 +10,11 @@
 </script>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZonaChat.net — Hilo</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' http://localhost:3000; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="style.css">
-    <style>
-        .hilo-item { cursor:pointer; }
-        .hilo-item:hover td { background:#c8d8f8; }
-        .form-respuesta { background:#f0f4ff; border:1px solid #c0ccee; padding:8px; margin-top:6px; }
-        .citar-bloque { background:#ffffee; border-left:3px solid #ccaa00; padding:4px 8px; margin-bottom:6px; font-size:10px; color:#665500; }
-        .hilo-stats { font-size:10px; color:var(--text-system); display:flex; gap:12px; flex-wrap:wrap; }
-        .acciones-hilo { display:flex; gap:4px; flex-wrap:wrap; }
-    </style>
 </head>
 <body>
 <div id="zonachat-toast-container"></div>
@@ -29,12 +22,11 @@
     <a href="index.html" class="logo">Zona<span>Chat.net</span></a>
     <div class="nav-links">
         <a href="salas.html">🏠 Salas</a>
-        <a href="hilo.html" class="activo">💬 Hilos</a>
         <a href="perfil.html">👤 Mi Perfil</a>
     </div>
     <div id="auth-controls">
         <button id="nav-login-btn" onclick="location.href='index.html'">Acceder</button>
-        <button id="nav-perfil-btn" onclick="location.href='perfil.html'"></button>
+        <button id="nav-perfil-btn" onclick="location.href='perfil.html'" style="display:none"></button>
         <button id="nav-mod-btn" class="btn-warn btn-small" onclick="location.href='moderacion.html'" style="display:none">🛡 Mod</button>
         <button id="nav-logout-btn" class="btn-danger btn-small" style="display:none" onclick="cerrarSesion()">Salir</button>
     </div>
@@ -45,611 +37,278 @@
 </nav>
 
 <main class="container">
-    <div style="font-size:11px;padding:4px 0;margin-bottom:4px;color:var(--text-system)">
-        <a href="salas.html">Salas</a> &rsaquo;
-        <span id="bc-sala">–</span> &rsaquo;
-        <span id="bc-hilo" style="color:var(--text-dark)">–</span>
+    <!-- Info de la sala -->
+    <div class="glass-card">
+        <div class="win-titlebar">
+            <span id="sala-titulo">💬 Cargando sala...</span>
+            <a href="salas.html" style="color: var(--neon-cyan); font-size: 12px;">← Volver a salas</a>
+        </div>
+        <div class="card-body" style="padding: 10px 16px;">
+            <p id="sala-descripcion" style="font-size: 13px; color: var(--text-dim); margin: 0;"></p>
+        </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:280px 1fr;gap:8px;align-items:start">
-        <div>
-            <div class="glass-card">
-                <div class="win-titlebar">
-                    <span id="titulo-sala">Hilos de la Sala</span>
-                    <button id="btn-nuevo-hilo" class="btn-small btn-success" onclick="abrirModalHilo()" style="display:none">+ Nuevo</button>
-                </div>
-                <div style="overflow-y:auto;max-height:480px;">
-                    <table class="win-table" style="font-size:10px;">
-                        <thead><tr><th>Título</th><th style="width:44px">Resp.</th></tr></thead>
-                        <tbody id="lista-hilos"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="glass-card">
-                <div class="win-titlebar"><span>👥 Online ahora</span></div>
-                <div id="lista-online" style="padding:6px 8px;"></div>
-            </div>
+    <!-- Botón nuevo hilo -->
+    <div id="nuevo-hilo-section" class="glass-card" style="display: none;">
+        <div class="card-body">
+            <button class="btn-primary" onclick="mostrarFormNuevoHilo()" style="width: auto;">✏️ Crear nuevo hilo</button>
         </div>
+    </div>
 
-        <div>
-            <div class="glass-card" id="panel-hilo">
-                <div class="win-titlebar">
-                    <span id="titulo-hilo">Selecciona un hilo</span>
+    <!-- Formulario nuevo hilo -->
+    <div id="form-nuevo-hilo" class="glass-card" style="display: none;">
+        <div class="win-titlebar"><span>✏️ Nuevo Hilo de Discusión</span></div>
+        <div class="card-body">
+            <form onsubmit="crearHilo(event)">
+                <div class="input-group">
+                    <label for="hilo-titulo">Título *</label>
+                    <input type="text" id="hilo-titulo" maxlength="100" placeholder="Título del hilo..." required>
                 </div>
-                <div id="cuerpo-hilo" class="card-body">
-                    <p class="text-small text-center" style="padding:20px 0">Haz clic en un hilo de la lista para verlo.</p>
+                <div class="input-group">
+                    <label for="hilo-contenido">Mensaje inicial *</label>
+                    <textarea id="hilo-contenido" maxlength="2000" rows="4" placeholder="Escribe tu mensaje..." required></textarea>
                 </div>
-            </div>
-            <div class="glass-card" id="panel-responder" style="display:none">
-                <div class="win-titlebar"><span id="titulo-responder">✏️ Responder</span></div>
-                <div class="card-body">
-                    <div id="cita-preview" class="citar-bloque hidden"></div>
-                    <div class="input-group">
-                        <label for="texto-respuesta">Tu mensaje</label>
-                        <textarea id="texto-respuesta" maxlength="2000" rows="4" placeholder="Escribe tu respuesta..."></textarea>
-                        <span class="input-hint" id="char-count">0 / 2000 caracteres</span>
-                    </div>
-                    <div class="acciones-hilo">
-                        <button onclick="enviarRespuesta()">Enviar respuesta</button>
-                        <button onclick="cancelarRespuesta()">Cancelar</button>
-                    </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="ocultarFormNuevoHilo()">Cancelar</button>
+                    <button type="submit" class="btn-primary"> Publicar hilo</button>
                 </div>
-            </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de hilos -->
+    <div class="glass-card">
+        <div class="win-titlebar"><span>📋 Hilos de discusión</span></div>
+        <div id="hilos-contenedor" style="padding: 12px;">
+            <!-- Hilos se cargan aquí -->
+        </div>
+        <div class="card-body d-flex justify-between align-center" style="border-top: 1px solid rgba(0,255,255,0.15);">
+            <div class="paginacion" id="paginacion"></div>
+            <span id="paginacion-info" class="paginacion-info"></span>
         </div>
     </div>
 </main>
 
-<!-- Modal nuevo hilo -->
-<div id="modal-hilo" class="modal-overlay hidden">
-    <div class="glass-card modal-content" style="max-width:500px">
-        <div class="win-titlebar"><span>✏️ Nuevo Hilo</span></div>
-        <div class="card-body">
-            <div class="input-group"><label>Título <span style="color:red">*</span></label><input type="text" id="nh-titulo" maxlength="120" placeholder="Escribe el título del hilo..."></div>
-            <div class="input-group"><label>Mensaje inicial <span style="color:red">*</span></label><textarea id="nh-cuerpo" maxlength="2000" rows="5" placeholder="Escribe el primer mensaje..."></textarea></div>
-            <div class="modal-buttons">
-                <button onclick="confirmarNuevoHilo()" style="padding:4px 20px">Publicar</button>
-                <button class="btn-danger" onclick="cerrarModalHilo()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal reportar -->
-<div id="modal-reportar" class="modal-overlay hidden">
-    <div class="glass-card modal-content">
-        <div class="win-titlebar"><span>⚠️ Reportar mensaje</span></div>
-        <div class="card-body">
-            <p class="text-small mb-8">Indica el motivo del reporte. El equipo de moderación lo revisará.</p>
-            <div class="input-group">
-                <label>Motivo</label>
-                <select id="reporte-motivo">
-                    <option value="spam">Spam o publicidad</option>
-                    <option value="ofensivo">Contenido ofensivo</option>
-                    <option value="flood">Flood / repetición</option>
-                    <option value="otro">Otro</option>
-                </select>
-            </div>
-            <div class="input-group"><label>Comentario (opcional)</label><textarea id="reporte-comentario" maxlength="300" rows="3"></textarea></div>
-            <div class="modal-buttons">
-                <button onclick="confirmarReporte()" style="padding:4px 20px">Enviar reporte</button>
-                <button class="btn-danger" onclick="cerrarModalReportar()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script src="shared.js"></script>
 <script>
 'use strict';
-const params = new URLSearchParams(location.search);
-const salaIdUrl = parseInt(params.get('sala')) || 1;
-const hiloIdUrl = parseInt(params.get('hilo')) || null;
-
-let hiloActivo = null;
-let hilos = [];
+let salaActual = null;
 let usuarioActual = null;
+let hilos = [];
+let pagina = 1;
+const POR_PAG = 10;
+
+// Obtener ID de sala de la URL
+const urlParams = new URLSearchParams(window.location.search);
+const salaId = parseInt(urlParams.get('sala')) || 1;
 
 window.addEventListener('DOMContentLoaded', () => {
     iniciarSesionGuardada(u => {
         usuarioActual = u;
         renderizarNavbar(u);
-        if (u) document.getElementById('btn-nuevo-hilo').style.display = 'inline-block';
-    }, () => renderizarNavbar(null));
+        document.getElementById('nuevo-hilo-section').style.display = 'block';
+    }, () => {
+        renderizarNavbar(null);
+    });
+
     cargarSala();
-    cargarOnline();
+    cargarHilos();
 });
 
-// ── Sala ──────────────────────────────────────────────────────────────────────
 async function cargarSala() {
     try {
-        // Cargar info de la sala
-        const salasRes = await apiFetch('/salas');
-        if (salasRes.ok) {
-            const salasData = await salasRes.json();
-            const sala = salasData.salas.find(s => s.id === salaIdUrl) || salasData.salas[0];
-            if (sala) {
-                document.getElementById('titulo-sala').textContent = `${sala.icono} ${sala.nombre}`;
-                document.getElementById('bc-sala').textContent = sala.nombre;
-                document.title = `ZonaChat.net — ${sala.nombre}`;
-            }
-        }
-
-        // Cargar hilos de la sala
-        const hilosRes = await apiFetch(`/mensajes?sala_id=${salaIdUrl}&limite=50`);
-        if (hilosRes.ok) {
-            const data = await hilosRes.json();
-            hilos = data.mensajes;
-            renderListaHilos();
-            
-            if (hilos.length > 0) {
-                const hiloInicial = hiloIdUrl ? hilos.find(h => h.id === hiloIdUrl) : hilos[0];
-                if (hiloInicial) cargarHilo(hiloInicial.id);
-            }
+        const res = await apiFetch(`/salas/${salaId}`);
+        if (res.ok) {
+            const data = await res.json();
+            salaActual = data.sala;
+            document.getElementById('sala-titulo').textContent = `${salaActual.icono || '💬'} ${salaActual.nombre}`;
+            document.getElementById('sala-descripcion').textContent = salaActual.descripcion || '';
+            document.title = `${salaActual.nombre} — ZonaChat.net`;
         } else {
-            usarDatosMock();
+            // Fallback a datos mock
+            const salaMock = MOCK.salas.find(s => s.id === salaId);
+            if (salaMock) {
+                salaActual = salaMock;
+                document.getElementById('sala-titulo').textContent = `${salaMock.icono} ${salaMock.nombre}`;
+                document.getElementById('sala-descripcion').textContent = salaMock.descripcion;
+            }
         }
     } catch (error) {
-        console.log('Usando datos mock');
-        usarDatosMock();
+        // Fallback a datos mock
+        const salaMock = MOCK.salas.find(s => s.id === salaId);
+        if (salaMock) {
+            salaActual = salaMock;
+            document.getElementById('sala-titulo').textContent = `${salaMock.icono} ${salaMock.nombre}`;
+            document.getElementById('sala-descripcion').textContent = salaMock.descripcion;
+        }
     }
 }
 
-function usarDatosMock() {
-    const sala = MOCK.salas.find(s => s.id === salaIdUrl) || MOCK.salas[0];
-    document.getElementById('titulo-sala').textContent = `${sala.icono} ${sala.nombre}`;
-    document.getElementById('bc-sala').textContent = sala.nombre;
-    
-    hilos = MOCK.hilos.filter(h => h.salaId === sala.id).map(h => ({
-        id: h.id,
-        titulo: h.titulo,
-        autor: h.autor,
-        fecha: h.fecha,
-        respuestas: h.respuestas.length,
-        contenido: h.contenido
-    }));
-    
-    renderListaHilos();
-    if (hilos.length > 0) cargarHiloMock(hilos[0].id);
-}
+async function cargarHilos() {
+    const contenedor = document.getElementById('hilos-contenedor');
+    contenedor.innerHTML = '<p style="text-align: center; color: var(--text-dim); padding: 20px;">Cargando hilos...</p>';
 
-function renderListaHilos() {
-    const tbody = document.getElementById('lista-hilos');
-    tbody.innerHTML = '';
+    try {
+        const res = await apiFetch(`/mensajes?sala=${salaId}`);
+        if (res.ok) {
+            const data = await res.json();
+            hilos = data.mensajes || [];
+        } else {
+            // Fallback a datos mock
+            hilos = MOCK.hilos.filter(h => h.salaId === salaId);
+        }
+    } catch (error) {
+        // Fallback a datos mock
+        hilos = MOCK.hilos.filter(h => h.salaId === salaId);
+    }
 
-    if (!hilos.length) {
-        const tr = tbody.insertRow();
-        const td = tr.insertCell();
-        td.colSpan = 2;
-        td.textContent = 'No hay hilos aún. ¡Crea el primero!';
-        td.style.cssText = 'padding:12px;text-align:center;color:var(--text-system)';
+    if (hilos.length === 0) {
+        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-dim); padding: 20px;">No hay hilos en esta sala. ¡Sé el primero en crear uno!</p>';
+        document.getElementById('paginacion').innerHTML = '';
+        document.getElementById('paginacion-info').textContent = '';
         return;
     }
 
-    hilos.forEach(hilo => {
-        const tr = tbody.insertRow();
-        tr.className = 'hilo-item';
-        tr.onclick = () => cargarHilo(hilo.id);
+    renderHilos();
+}
 
-        const tdTit = tr.insertCell();
-        const span = document.createElement('span');
-        span.textContent = truncar(hilo.titulo || 'Sin título', 40);
-        span.style.fontWeight = 'bold';
-        span.style.color = 'var(--terra-blue-dark)';
-        const autor = document.createElement('div');
-        autor.textContent = `@${hilo.autor} · ${formatearFecha(hilo.fecha)}`;
-        autor.style.cssText = 'font-size:9px;color:var(--text-system)';
-        tdTit.appendChild(span);
-        tdTit.appendChild(autor);
+function renderHilos() {
+    const contenedor = document.getElementById('hilos-contenedor');
+    contenedor.innerHTML = '';
 
-        const tdResp = tr.insertCell();
-        tdResp.textContent = hilo.respuestas || 0;
-        tdResp.style.cssText = 'text-align:center;color:var(--text-system)';
+    const inicio = (pagina - 1) * POR_PAG;
+    const slice = hilos.slice(inicio, inicio + POR_PAG);
+
+    slice.forEach(hilo => {
+        const card = document.createElement('div');
+        card.className = 'mensaje-card';
+        card.style.cursor = 'pointer';
+        card.onclick = () => location.href = `hilo.html?sala=${salaId}&hilo=${hilo.id}`;
+
+        const header = document.createElement('div');
+        header.className = 'mensaje-header';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar avatar-sm';
+        avatar.textContent = (hilo.autor || '?')[0].toUpperCase();
+
+        const autor = document.createElement('span');
+        autor.className = 'mensaje-autor';
+        autor.textContent = `@${hilo.autor}`;
+
+        const fecha = document.createElement('span');
+        fecha.className = 'mensaje-fecha';
+        fecha.textContent = formatearFecha(hilo.fecha || hilo.creado_en);
+
+        header.append(avatar, autor, fecha);
+
+        const titulo = document.createElement('h4');
+        titulo.style.cssText = 'margin: 8px 0; color: var(--text-bright); font-size: 14px;';
+        titulo.textContent = hilo.titulo || 'Sin título';
+
+        const contenido = document.createElement('p');
+        contenido.className = 'mensaje-contenido';
+        contenido.textContent = truncar(hilo.contenido, 150);
+
+        const stats = document.createElement('div');
+        stats.style.cssText = 'display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: var(--text-dim);';
+        stats.innerHTML = `
+            <span>💬 ${hilo.respuestas ? hilo.respuestas.length : 0} respuestas</span>
+            <span>👁 ${hilo.vistas || 0} vistas</span>
+            <span>👍 ${hilo.votos || 0} votos</span>
+        `;
+
+        card.append(header, titulo, contenido, stats);
+        contenedor.appendChild(card);
     });
+
+    renderPaginacion();
 }
 
-// ── Hilo ──────────────────────────────────────────────────────────────────────
-async function cargarHilo(id) {
-    try {
-        const res = await apiFetch(`/mensajes/${id}`);
-        if (res.ok) {
-            const hilo = await res.json();
-            hiloActivo = hilo;
-            renderHilo(hilo);
-        } else {
-            cargarHiloMock(id);
-        }
-    } catch (error) {
-        cargarHiloMock(id);
+function renderPaginacion() {
+    const total = Math.ceil(hilos.length / POR_PAG);
+    const cont = document.getElementById('paginacion');
+    const info = document.getElementById('paginacion-info');
+    cont.innerHTML = '';
+
+    if (total <= 1) {
+        info.textContent = `${hilos.length} hilo${hilos.length !== 1 ? 's' : ''}`;
+        return;
     }
+
+    const prev = document.createElement('button');
+    prev.textContent = '◄';
+    prev.className = 'btn-small';
+    prev.disabled = pagina === 1;
+    prev.onclick = () => { pagina--; renderHilos(); };
+    cont.appendChild(prev);
+
+    for (let i = 1; i <= total; i++) {
+        const b = document.createElement('button');
+        b.textContent = i;
+        b.className = `btn-small${i === pagina ? ' activa' : ''}`;
+        b.onclick = () => { pagina = i; renderHilos(); };
+        cont.appendChild(b);
+    }
+
+    const next = document.createElement('button');
+    next.textContent = '►';
+    next.className = 'btn-small';
+    next.disabled = pagina === total;
+    next.onclick = () => { pagina++; renderHilos(); };
+    cont.appendChild(next);
+
+    const inicio = (pagina - 1) * POR_PAG + 1;
+    const fin = Math.min(pagina * POR_PAG, hilos.length);
+    info.textContent = `Mostrando ${inicio}–${fin} de ${hilos.length}`;
 }
 
-function cargarHiloMock(id) {
-    const hilo = MOCK.hilos.find(h => h.id === id);
-    if (!hilo) return;
-    
-    hiloActivo = {
-        id: hilo.id,
-        titulo: hilo.titulo,
-        autor: hilo.autor,
-        autor_rol: 'usuario',
-        fecha: hilo.fecha,
-        contenido: hilo.contenido,
-        votos: 0,
-        respuestas: hilo.respuestas.map(r => ({
-            id: r.id,
-            autor: r.autor,
-            autor_rol: r.moderador ? 'moderador' : 'usuario',
-            fecha: r.fecha,
-            contenido: r.contenido,
-            votos: r.votos
-        }))
-    };
-    renderHilo(hiloActivo);
-}
-
-function renderHilo(hilo) {
-    document.getElementById('titulo-hilo').textContent = truncar(hilo.titulo || 'Sin título', 60);
-    document.getElementById('bc-hilo').textContent = truncar(hilo.titulo || 'Sin título', 40);
-
-    const cuerpo = document.getElementById('cuerpo-hilo');
-    cuerpo.innerHTML = '';
-
-    // Mensaje original
-    cuerpo.appendChild(crearTarjetaMensaje({
-        id: hilo.id,
-        autor: hilo.autor,
-        autor_rol: hilo.autor_rol,
-        fecha: hilo.fecha,
-        contenido: hilo.contenido,
-        votos: hilo.votos || 0,
-        esOriginal: true
-    }));
-
-    // Stats
-    const stats = document.createElement('div');
-    stats.className = 'hilo-stats mt-4 mb-8';
-    stats.innerHTML = `<span>💬 ${hilo.respuestas ? hilo.respuestas.length : 0} respuestas</span>`;
-    cuerpo.appendChild(stats);
-
-    const sep = document.createElement('hr');
-    sep.className = 'separator';
-    cuerpo.appendChild(sep);
-
-    // Respuestas
-    if (!hilo.respuestas || hilo.respuestas.length === 0) {
-        const p = document.createElement('p');
-        p.className = 'text-small';
-        p.style.padding = '8px 0';
-        p.textContent = 'Sé el primero en responder.';
-        cuerpo.appendChild(p);
-    } else {
-        hilo.respuestas.forEach(r => {
-            cuerpo.appendChild(crearTarjetaMensaje(r));
-        });
-    }
-
-    // Botón responder
-    if (usuarioActual) {
-        const btnResp = document.createElement('button');
-        btnResp.textContent = '✏️ Responder al hilo';
-        btnResp.className = 'mt-8';
-        btnResp.onclick = () => mostrarFormRespuesta(null);
-        cuerpo.appendChild(btnResp);
-    }
-
-    document.getElementById('panel-responder').style.display = 'none';
-    cancelarRespuesta();
-}
-
-function crearTarjetaMensaje(r) {
-    const card = document.createElement('div');
-    card.className = `post-card${r.esOriginal ? '' : ' respuesta-anidada'}`;
-
-    const header = document.createElement('div');
-    header.className = 'post-header';
-
-    const av = document.createElement('div');
-    av.className = 'avatar avatar-sm';
-    av.textContent = (r.autor || '?')[0].toUpperCase();
-
-    const nombre = document.createElement('strong');
-    nombre.textContent = `@${r.autor}`;
-
-    const fecha = document.createElement('span');
-    fecha.className = 'fecha';
-    fecha.textContent = formatearFecha(r.fecha);
-
-    if (r.autor_rol === 'moderador' || r.autor_rol === 'admin') {
-        const badge = document.createElement('span');
-        badge.className = 'badge-mod';
-        badge.textContent = r.autor_rol === 'admin' ? 'ADMIN' : 'MOD';
-        header.appendChild(badge);
-    }
-    header.append(av, nombre, fecha);
-
-    if (r.esOriginal) {
-        const badgeOP = document.createElement('span');
-        badgeOP.style.cssText = 'font-size:9px;background:#003399;color:#fff;padding:1px 5px;margin-left:2px';
-        badgeOP.textContent = 'OP';
-        header.appendChild(badgeOP);
-    }
-
-    const content = document.createElement('div');
-    content.className = 'post-content mt-4';
-    content.textContent = r.contenido;
-
-    const acciones = document.createElement('div');
-    acciones.className = 'post-actions';
-
-    const btnVotar = document.createElement('button');
-    btnVotar.className = 'btn-small';
-    btnVotar.textContent = `▲ ${r.votos || 0}`;
-    btnVotar.title = 'Votar mensaje';
-    btnVotar.onclick = () => votarMensaje(r.id, btnVotar);
-
-    const btnCitar = document.createElement('button');
-    btnCitar.className = 'btn-small';
-    btnCitar.textContent = '↩ Citar';
-    btnCitar.title = 'Citar este mensaje';
-    btnCitar.onclick = () => {
-        if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
-        mostrarFormRespuesta(r);
-    };
-
-    const btnReportar = document.createElement('button');
-    btnReportar.className = 'btn-small btn-warn';
-    btnReportar.textContent = '⚑ Reportar';
-    btnReportar.onclick = () => {
-        if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
-        abrirModalReportar(r.id);
-    };
-
-    acciones.append(btnVotar, btnCitar, btnReportar);
-
-    // Borrar (solo mod/admin o autor, no en mensaje original)
-    if (!r.esOriginal && usuarioActual) {
-        const esAutor = r.autor === usuarioActual.nombre;
-        const esMod = usuarioActual.rol === 'moderador' || usuarioActual.rol === 'admin';
-        if (esAutor || esMod) {
-            const btnBorrar = document.createElement('button');
-            btnBorrar.className = 'btn-small btn-danger';
-            btnBorrar.textContent = '🗑 Borrar';
-            btnBorrar.onclick = () => borrarMensaje(r.id);
-            acciones.appendChild(btnBorrar);
-        }
-    }
-
-    card.append(header, content, acciones);
-    return card;
-}
-
-async function votarMensaje(mensajeId, btn) {
+function mostrarFormNuevoHilo() {
     if (!usuarioActual) {
-        mostrarAviso('Debes iniciar sesión para votar.', 'error');
+        mostrarAviso('Debes iniciar sesión para crear un hilo.', 'error');
         return;
     }
-    
-    try {
-        const res = await apiFetch(`/mensajes/${mensajeId}/votar`, { method: 'POST' });
-        if (res.ok) {
-            const data = await res.json();
-            btn.textContent = `▲ ${data.votos}`;
-            mostrarAviso('Voto registrado.', 'success');
-        }
-    } catch (error) {
-        mostrarAviso('Error al votar.', 'error');
+    document.getElementById('form-nuevo-hilo').style.display = 'block';
+    document.getElementById('hilo-titulo').focus();
+}
+
+function ocultarFormNuevoHilo() {
+    document.getElementById('form-nuevo-hilo').style.display = 'none';
+    document.getElementById('hilo-titulo').value = '';
+    document.getElementById('hilo-contenido').value = '';
+}
+
+async function crearHilo(e) {
+    e.preventDefault();
+
+    const titulo = document.getElementById('hilo-titulo').value.trim();
+    const contenido = document.getElementById('hilo-contenido').value.trim();
+
+    if (!titulo || !contenido) {
+        mostrarAviso('Completa todos los campos.', 'error');
+        return;
     }
-}
-
-async function borrarMensaje(mensajeId) {
-    if (!confirm('¿Estás seguro de que quieres borrar este mensaje?')) return;
-    
-    try {
-        const res = await apiFetch(`/mensajes/${mensajeId}`, { method: 'DELETE' });
-        if (res.ok) {
-            mostrarAviso('Mensaje eliminado.', 'success');
-            if (hiloActivo) cargarHilo(hiloActivo.id);
-        } else {
-            const err = await res.json();
-            mostrarAviso(err.error || 'Error al borrar.', 'error');
-        }
-    } catch (error) {
-        mostrarAviso('Error al borrar.', 'error');
-    }
-}
-
-// ── Formulario respuesta ──────────────────────────────────────────────────────
-let citandoId = null;
-
-function mostrarFormRespuesta(citado) {
-    citandoId = citado ? citado.id : null;
-    const panel = document.getElementById('panel-responder');
-    const preview = document.getElementById('cita-preview');
-    const textarea = document.getElementById('texto-respuesta');
-
-    if (citado) {
-        preview.classList.remove('hidden');
-        preview.textContent = `Citando a @${citado.autor}: "${truncar(citado.contenido, 80)}"`;
-        document.getElementById('titulo-responder').textContent = `↩ Respondiendo a @${citado.autor}`;
-    } else {
-        preview.classList.add('hidden');
-        document.getElementById('titulo-responder').textContent = '✏️ Responder al hilo';
-    }
-
-    panel.style.display = 'block';
-    textarea.value = '';
-    textarea.focus();
-    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const ta = document.getElementById('texto-respuesta');
-    if (ta) ta.addEventListener('input', () => {
-        document.getElementById('char-count').textContent = `${ta.value.length} / 2000 caracteres`;
-    });
-});
-
-function cancelarRespuesta() {
-    citandoId = null;
-    const ta = document.getElementById('texto-respuesta');
-    if (ta) ta.value = '';
-    document.getElementById('cita-preview').classList.add('hidden');
-}
-
-async function enviarRespuesta() {
-    if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
-    if (!hiloActivo) { mostrarAviso('Selecciona un hilo primero.', 'error'); return; }
-
-    const ta = document.getElementById('texto-respuesta');
-    const texto = ta.value.trim();
-    if (!texto) { mostrarAviso('El mensaje no puede estar vacío.', 'error'); return; }
-    if (texto.length > 2000) { mostrarAviso('El mensaje es demasiado largo.', 'error'); return; }
 
     try {
         const res = await apiFetch('/mensajes', {
             method: 'POST',
             body: JSON.stringify({
-                contenido: texto,
-                padre_id: hiloActivo.id
-            })
-        });
-
-        if (res.ok) {
-            mostrarAviso('Respuesta publicada.', 'success');
-            cargarHilo(hiloActivo.id);
-            document.getElementById('panel-responder').style.display = 'none';
-        } else {
-            const err = await res.json();
-            mostrarAviso(err.error || 'Error al publicar.', 'error');
-        }
-    } catch (error) {
-        mostrarAviso('Error al publicar respuesta.', 'error');
-    }
-}
-
-// ── Nuevo hilo ────────────────────────────────────────────────────────────────
-function abrirModalHilo() { document.getElementById('modal-hilo').classList.remove('hidden'); }
-function cerrarModalHilo() { document.getElementById('modal-hilo').classList.add('hidden'); }
-
-async function confirmarNuevoHilo() {
-    if (!usuarioActual) { mostrarAviso('Debes iniciar sesión.', 'error'); return; }
-    const titulo = document.getElementById('nh-titulo').value.trim();
-    const cuerpo = document.getElementById('nh-cuerpo').value.trim();
-    if (!titulo) { mostrarAviso('El título es obligatorio.', 'error'); return; }
-    if (!cuerpo) { mostrarAviso('El mensaje inicial es obligatorio.', 'error'); return; }
-
-    try {
-        const res = await apiFetch('/mensajes', {
-            method: 'POST',
-            body: JSON.stringify({
+                sala_id: salaId,
                 titulo,
-                contenido: cuerpo,
-                sala_id: salaIdUrl
+                contenido
             })
         });
 
         if (res.ok) {
-            const data = await res.json();
             mostrarAviso('Hilo creado correctamente.', 'success');
-            cerrarModalHilo();
-            document.getElementById('nh-titulo').value = '';
-            document.getElementById('nh-cuerpo').value = '';
-            cargarSala();
+            ocultarFormNuevoHilo();
+            cargarHilos();
         } else {
-            const err = await res.json();
-            mostrarAviso(err.error || 'Error al crear hilo.', 'error');
-        }
-    } catch (error) {
-        mostrarAviso('Error al crear hilo.', 'error');
-    }
-}
-
-// ── Reporte ────────────────────────────────────────────────────────────────────
-let reportandoMsgId = null;
-function abrirModalReportar(id) {
-    reportandoMsgId = id;
-    document.getElementById('modal-reportar').classList.remove('hidden');
-}
-function cerrarModalReportar() { document.getElementById('modal-reportar').classList.add('hidden'); }
-
-async function confirmarReporte() {
-    const motivo = document.getElementById('reporte-motivo').value;
-    const comentario = document.getElementById('reporte-comentario').value.trim();
-    
-    try {
-        const res = await apiFetch('/reportes', {
-            method: 'POST',
-            body: JSON.stringify({
-                tipo: 'mensaje',
-                objetivo_id: reportandoMsgId,
-                razon: motivo + (comentario ? `: ${comentario}` : '')
-            })
-        });
-
-        if (res.ok) {
-            cerrarModalReportar();
-            mostrarAviso('Reporte enviado. El equipo de moderación lo revisará.', 'success');
-        } else {
-            mostrarAviso('Error al enviar reporte.', 'error');
-        }
-    } catch (error) {
-        cerrarModalReportar();
-        mostrarAviso('Reporte enviado (modo offline).', 'success');
-    }
-}
-
-// ── Online ─────────────────────────────────────────────────────────────────────
-async function cargarOnline() {
-    const cont = document.getElementById('lista-online');
-    
-    try {
-        const res = await apiFetch('/usuarios/online');
-        if (res.ok) {
             const data = await res.json();
-            cont.innerHTML = '';
-            data.usuarios.forEach(u => {
-                const div = document.createElement('div');
-                div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dotted #ccc;font-size:11px';
-                const dot = document.createElement('span');
-                dot.className = 'dot-online';
-                const av = document.createElement('div');
-                av.className = 'avatar avatar-sm';
-                av.textContent = u.nombre[0].toUpperCase();
-                const nom = document.createElement('span');
-                nom.textContent = u.nombre;
-                
-                if (u.rol === 'moderador') {
-                    const b = document.createElement('span');
-                    b.className = 'badge-mod';
-                    b.textContent = 'MOD';
-                    div.append(dot, av, nom, b);
-                } else if (u.rol === 'admin') {
-                    const b = document.createElement('span');
-                    b.className = 'badge-admin';
-                    b.textContent = 'ADMIN';
-                    div.append(dot, av, nom, b);
-                } else {
-                    div.append(dot, av, nom);
-                }
-                cont.appendChild(div);
-            });
+            mostrarAviso(data.error || 'Error al crear hilo.', 'error');
         }
     } catch (error) {
-        // Fallback mock
-        cont.innerHTML = '';
-        MOCK.usuarios.filter(u => u.estado === 'online').forEach(u => {
-            const div = document.createElement('div');
-            div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dotted #ccc;font-size:11px';
-            const dot = document.createElement('span');
-            dot.className = 'dot-online';
-            const av = document.createElement('div');
-            av.className = 'avatar avatar-sm';
-            av.textContent = u.nombre[0].toUpperCase();
-            const nom = document.createElement('span');
-            nom.textContent = u.nombre;
-            div.append(dot, av, nom);
-            cont.appendChild(div);
-        });
+        mostrarAviso('Error de conexión.', 'error');
     }
 }
 </script>

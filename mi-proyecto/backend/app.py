@@ -150,7 +150,7 @@ init_db()
 
 def hash_password(password: str) -> str:
     """Hashea una contraseña usando bcrypt."""
-    salt = bcrypt.gensalt(rounds=12)
+    salt = bcrypt.gensalt(rounds=10)
     return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 def verify_password(password: str, hashed: str) -> bool:
@@ -304,8 +304,10 @@ def register():
     Registra un nuevo usuario.
     Requiere: email, password, nombre (opcional, se genera del email si no se proporciona)
     """
+    print("=== INICIO REGISTRO ===")
     try:
         data = request.json
+        print(f"Datos recibidos: {data}")
         if not data:
             return jsonify({'error': 'Datos no proporcionados'}), 400
 
@@ -315,7 +317,16 @@ def register():
         # Generar nombre del email si no se proporciona
         nombre = data.get('nombre', '').strip()
         if not nombre:
-            nombre = email.split('@')[0]
+            # Sanear el nombre generado del email (solo letras, números, guión bajo)
+            nombre_raw = email.split('@')[0]
+            nombre = re.sub(r'[^a-zA-Z0-9_]', '_', nombre_raw)
+            # Eliminar guiones bajos múltiples y de los extremos
+            nombre = re.sub(r'_+', '_', nombre).strip('_')
+            # Asegurar mínimo 3 caracteres
+            if len(nombre) < 3:
+                nombre = 'user_' + nombre_raw[:10].replace('.', '_')
+        
+        print(f"Email: {email}, Nombre generado: {nombre}")
 
         # Validaciones
         if not email:
@@ -371,8 +382,10 @@ def register():
         }), 201
 
     except Exception as e:
+        import traceback
         print(f"Error en registro: {str(e)}")
-        return jsonify({'error': 'Error interno del servidor'}), 500
+        traceback.print_exc()
+        return jsonify({'error': f'Error interno: {str(e)}'}), 500
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -650,7 +663,6 @@ def crear_mensaje():
         )
         mensaje_id = cursor.lastrowid
 
-        # Actualizar contador de mensajes en sala
         conn.commit()
         conn.close()
 
@@ -842,6 +854,35 @@ def get_salas():
     except Exception as e:
         print(f"Error en get_salas: {str(e)}")
         return jsonify({'error': 'Error al obtener salas'}), 500
+
+@app.route('/api/salas/<int:sala_id>', methods=['GET'])
+def get_sala(sala_id):
+    """Obtiene una sala específica."""
+    try:
+        conn = get_db_connection()
+
+        sala = conn.execute(
+            'SELECT id, nombre, descripcion, icono FROM salas WHERE id = ?',
+            (sala_id,)
+        ).fetchone()
+
+        conn.close()
+
+        if not sala:
+            return jsonify({'error': 'Sala no encontrada'}), 404
+
+        return jsonify({
+            'sala': {
+                'id': sala['id'],
+                'nombre': sala['nombre'],
+                'descripcion': sala['descripcion'] or '',
+                'icono': sala['icono'] or '💬'
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Error en get_sala: {str(e)}")
+        return jsonify({'error': 'Error al obtener sala'}), 500
 
 @app.route('/api/salas', methods=['POST'])
 @mod_required
@@ -1104,19 +1145,19 @@ def crear_reporte():
         if not data:
             return jsonify({'error': 'Datos no proporcionados'}), 400
 
-        tipo = data.get('tipo', 'mensaje')  # mensaje o usuario
+        tipo = data.get('tipo', 'mensaje')
         objetivo_id = data.get('objetivo_id')
         razon = data.get('razon', '').strip()
 
         if not objetivo_id or not razon:
             return jsonify({'error': 'Faltan datos obligatorios'}), 400
 
-        razon = sanitizar_texto(razon, 300)
-
         conn = get_db_connection()
+
         conn.execute(
-            'INSERT INTO reportes (tipo, objetivo_id, reportador_id, razon) VALUES (?, ?, ?, ?)',
-            (tipo, objetivo_id, g.current_user['user_id'], razon)
+            '''INSERT INTO reportes (tipo, objetivo_id, reportador_id, razon)
+               VALUES (?, ?, ?, ?)''',
+            (tipo, objetivo_id, g.current_user['user_id'], sanitizar_texto(razon, 200))
         )
         conn.commit()
         conn.close()
@@ -1127,88 +1168,5 @@ def crear_reporte():
         print(f"Error en crear_reporte: {str(e)}")
         return jsonify({'error': 'Error al crear reporte'}), 500
 
-@app.route('/api/reportes/<int:reporte_id>/resolver', methods=['PATCH'])
-@mod_required
-def resolver_reporte(reporte_id):
-    """Marca un reporte como resuelto."""
-    try:
-        conn = get_db_connection()
-
-        conn.execute(
-            'UPDATE reportes SET estado = ?, resuelto_en = ? WHERE id = ?',
-            ('resuelto', datetime.utcnow().isoformat(), reporte_id)
-        )
-        conn.commit()
-        conn.close()
-
-        return jsonify({'mensaje': 'Reporte resuelto'}), 200
-
-    except Exception as e:
-        print(f"Error en resolver_reporte: {str(e)}")
-        return jsonify({'error': 'Error al resolver reporte'}), 500
-
-# ══════════════════════════════════════════════════════════════════════════════
-# ENDPOINTS - USUARIOS ONLINE
-# ══════════════════════════════════════════════════════════════════════════════
-
-@app.route('/api/usuarios/online', methods=['GET'])
-def get_usuarios_online():
-    """Obtiene lista de usuarios online."""
-    try:
-        conn = get_db_connection()
-
-        # Usuarios activos en los últimos 15 minutos
-        usuarios = conn.execute('''
-            SELECT id, nombre, rol, avatar
-            FROM usuarios
-            WHERE estado = 'online'
-            AND ultimo_acceso > datetime('now', '-15 minutes')
-            ORDER BY nombre
-            LIMIT 50
-        ''').fetchall()
-
-        conn.close()
-
-        return jsonify({
-            'usuarios': [{
-                'id': u['id'],
-                'nombre': u['nombre'],
-                'rol': u['rol'],
-                'avatar': u['avatar']
-            } for u in usuarios]
-        }), 200
-
-    except Exception as e:
-        print(f"Error en get_usuarios_online: {str(e)}")
-        return jsonify({'error': 'Error al obtener usuarios'}), 500
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MANEJO DE ERRORES
-# ══════════════════════════════════════════════════════════════════════════════
-
-@app.errorhandler(400)
-def bad_request(e):
-    return jsonify({'error': 'Solicitud incorrecta'}), 400
-
-@app.errorhandler(401)
-def unauthorized(e):
-    return jsonify({'error': 'No autorizado'}), 401
-
-@app.errorhandler(403)
-def forbidden(e):
-    return jsonify({'error': 'Acceso prohibido'}), 403
-
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({'error': 'Recurso no encontrado'}), 404
-
-@app.errorhandler(500)
-def internal_error(e):
-    return jsonify({'error': 'Error interno del servidor'}), 500
-
-# ══════════════════════════════════════════════════════════════════════════════
-# INICIO
-# ══════════════════════════════════════════════════════════════════════════════
-
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

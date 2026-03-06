@@ -9,9 +9,6 @@
 #   3. Crear directorio: mkdir backend\data  (Windows) o mkdir -p backend/data (Linux/Mac)
 #   4. docker-compose up --build
 #   5. Accede a: http://localhost:8080
-#
-# NOTA: El nginx.conf se copia dentro de la imagen via Dockerfile para evitar
-#       problemas de montaje en Windows/Docker Desktop.
 # ══════════════════════════════════════════════════════════════════════════════
 
 services:
